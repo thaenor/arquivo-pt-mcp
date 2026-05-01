@@ -225,13 +225,15 @@ async def image_search(
     return result
 
 
-async def list_versions(url: str, limit: int = 50) -> dict[str, Any]:
+async def list_versions(url: str, limit: int = 50, offset: int = 0) -> dict[str, Any]:
     """List every archived capture of a URL via the CDX server."""
-    cache_key = (url, limit)
+    cache_key = (url, limit, offset)
     if cache_key in CDX_CACHE:
         return CDX_CACHE[cache_key]
 
     params = {"url": url, "output": "json", "limit": min(limit, 500)}
+    if offset > 0:
+        params["offset"] = offset
     async with _client() as client:
         resp = await _fetch_with_retry(client, CDX, params=params)
         text = resp.text.strip()
@@ -446,6 +448,12 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "url": {"type": "string", "description": "URL to query capture history for"},
                     "limit": {"type": "integer", "default": 50, "minimum": 1, "maximum": 500},
+                    "offset": {
+                        "type": "integer",
+                        "default": 0,
+                        "minimum": 0,
+                        "description": "Pagination offset for CDX results (skip first N captures)",
+                    },
                 },
                 "required": ["url"],
             },
