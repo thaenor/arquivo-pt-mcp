@@ -1,8 +1,10 @@
 """Tests for the image_search tool."""
 
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+
 from arquivo_pt_mcp import image_search
 
 
@@ -11,14 +13,9 @@ async def test_image_search_basic(mock_image_search_response):
     """Test basic image search returns parsed results."""
     mock_resp = MagicMock()
     mock_resp.json.return_value = mock_image_search_response
-    mock_resp.raise_for_status = MagicMock()
+    mock_resp.text = json.dumps(mock_image_search_response)
 
-    mock_client = AsyncMock()
-    mock_client.get = AsyncMock(return_value=mock_resp)
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=False)
-
-    with patch("arquivo_pt_mcp._client", return_value=mock_client):
+    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
         result = await image_search("Praça do Comércio")
 
     assert result["query"] == "Praça do Comércio"
@@ -32,16 +29,15 @@ async def test_image_search_with_type_filter(mock_image_search_response):
     """Test image search with format filter."""
     mock_resp = MagicMock()
     mock_resp.json.return_value = mock_image_search_response
-    mock_resp.raise_for_status = MagicMock()
+    mock_resp.text = json.dumps(mock_image_search_response)
 
-    mock_client = AsyncMock()
-    mock_client.get = AsyncMock(return_value=mock_resp)
-    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = AsyncMock(return_value=False)
+    with (
+        patch(
+            "arquivo_pt_mcp._fetch_with_retry",
+            new=AsyncMock(return_value=mock_resp),
+        ) as mock_fetch
+    ):
+        await image_search("Porto", image_type="jpeg")
 
-    with patch("arquivo_pt_mcp._client", return_value=mock_client):
-        result = await image_search("Porto", image_type="jpeg")
-
-    call_args = mock_client.get.call_args
-    params = call_args.kwargs.get("params", call_args[1].get("params", {}))
+    params = mock_fetch.call_args.kwargs.get("params", {})
     assert params.get("type") == "jpeg"

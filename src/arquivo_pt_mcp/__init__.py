@@ -26,7 +26,7 @@ import json
 import re
 from datetime import datetime
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote  # noqa: F401 — kept for future URL-encoding needs
 
 import httpx
 from mcp.server import Server
@@ -285,12 +285,16 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
         "found": True,
         "timestamp": ts,
         "archive_url": snapshot_url,
-        "no_frame_url": snapshot_url.replace(f"{WAYBACK}/", f"{WAYBACK}/noFrame/") if snapshot_url else "",
+        "no_frame_url": (
+            snapshot_url.replace(f"{WAYBACK}/", f"{WAYBACK}/noFrame/") if snapshot_url else ""
+        ),
         "captured_at_iso": _ts_to_iso(ts),
     }
 
 
-async def extract_text(url: str, timestamp: str | None = None, max_chars: int = 8000) -> dict[str, Any]:
+async def extract_text(
+    url: str, timestamp: str | None = None, max_chars: int = 8000
+) -> dict[str, Any]:
     """Fetch a snapshot and return cleaned text content."""
     snap = await get_snapshot(url, timestamp)
     if not snap.get("found"):
@@ -333,9 +337,18 @@ async def list_tools() -> list[Tool]:
                 "properties": {
                     "query": {"type": "string", "description": "Search terms"},
                     "max_items": {"type": "integer", "default": 10, "minimum": 1, "maximum": 50},
-                    "from_date": {"type": "string", "description": "Start date: YYYY, YYYY-MM, or YYYY-MM-DD"},
-                    "to_date": {"type": "string", "description": "End date: YYYY, YYYY-MM, or YYYY-MM-DD"},
-                    "site_search": {"type": "string", "description": "Restrict to a domain, e.g. 'publico.pt'"},
+                    "from_date": {
+                        "type": "string",
+                        "description": "Start date: YYYY, YYYY-MM, or YYYY-MM-DD",
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "End date: YYYY, YYYY-MM, or YYYY-MM-DD",
+                    },
+                    "site_search": {
+                        "type": "string",
+                        "description": "Restrict to a domain, e.g. 'publico.pt'",
+                    },
                 },
                 "required": ["query"],
             },
@@ -350,9 +363,20 @@ async def list_tools() -> list[Tool]:
                 "type": "object",
                 "properties": {
                     "query": {"type": "string", "description": "Image search terms"},
-                    "max_items": {"type": "integer", "default": 10, "minimum": 1, "maximum": 50},
-                    "from_date": {"type": "string", "description": "Start date: YYYY, YYYY-MM, or YYYY-MM-DD"},
-                    "to_date": {"type": "string", "description": "End date: YYYY, YYYY-MM, or YYYY-MM-DD"},
+                    "max_items": {
+                        "type": "integer",
+                        "default": 10,
+                        "minimum": 1,
+                        "maximum": 50,
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Start date: YYYY, YYYY-MM, or YYYY-MM-DD",
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "End date: YYYY, YYYY-MM, or YYYY-MM-DD",
+                    },
                     "site_search": {"type": "string", "description": "Restrict to a domain"},
                     "image_type": {"type": "string", "description": "Image format: jpeg, png, gif"},
                 },
@@ -361,7 +385,10 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="list_versions",
-            description="List every archived capture of a specific URL (CDX query). Use to see how a page changed over time.",
+            description=(
+                "List every archived capture of a specific URL (CDX query). "
+                "Use to see how a page changed over time."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -373,25 +400,42 @@ async def list_tools() -> list[Tool]:
         ),
         Tool(
             name="get_snapshot",
-            description="Get the archive URL for a specific snapshot of a page. Omit timestamp for the latest capture.",
+            description=(
+                "Get the archive URL for a specific snapshot of a page. "
+                "Omit timestamp for the latest capture."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "url": {"type": "string", "description": "URL to look up"},
-                    "timestamp": {"type": "string", "description": "YYYY, YYYY-MM-DD, or YYYYMMDDHHMMSS"},
+                    "timestamp": {
+                        "type": "string",
+                        "description": "YYYY, YYYY-MM-DD, or YYYYMMDDHHMMSS",
+                    },
                 },
                 "required": ["url"],
             },
         ),
         Tool(
             name="extract_text",
-            description="Fetch an archived snapshot and return its readable text content (HTML stripped).",
+            description=(
+                "Fetch an archived snapshot and return its readable text content"
+                " (HTML stripped)."
+            ),
             inputSchema={
                 "type": "object",
                 "properties": {
                     "url": {"type": "string", "description": "URL to extract text from"},
-                    "timestamp": {"type": "string", "description": "Optional: specific snapshot timestamp"},
-                    "max_chars": {"type": "integer", "default": 8000, "minimum": 500, "maximum": 50000},
+                    "timestamp": {
+                        "type": "string",
+                        "description": "Optional: specific snapshot timestamp",
+                    },
+                    "max_chars": {
+                        "type": "integer",
+                        "default": 8000,
+                        "minimum": 500,
+                        "maximum": 50000,
+                    },
                 },
                 "required": ["url"],
             },
@@ -415,9 +459,25 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         result = await handler(**arguments)
         return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
     except httpx.HTTPStatusError as e:
-        return [TextContent(type="text", text=f"arquivo.pt returned HTTP {e.response.status_code}: {e.response.text[:500]}")]
+        return [
+            TextContent(
+                type="text",
+                text=(
+                    f"arquivo.pt returned HTTP {e.response.status_code}:"
+                    f" {e.response.text[:500]}"
+                ),
+            )
+        ]
     except httpx.TimeoutException:
-        return [TextContent(type="text", text=f"arquivo.pt request timed out after {DEFAULT_TIMEOUT}s")]
+        return [
+            TextContent(
+                type="text",
+                text=(
+                    f"arquivo.pt request timed out after"
+                    f" {DEFAULT_TIMEOUT}s"
+                ),
+            )
+        ]
     except Exception as e:
         return [TextContent(type="text", text=f"error in {name}: {type(e).__name__}: {e}")]
 

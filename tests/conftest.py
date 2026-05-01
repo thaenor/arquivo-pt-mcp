@@ -1,10 +1,8 @@
 """Shared fixtures for arquivo-pt-mcp tests."""
 
 import json
+
 import pytest
-import httpx
-from unittest.mock import AsyncMock, patch
-from arquivo_pt_mcp import _client
 
 
 @pytest.fixture
@@ -20,7 +18,10 @@ def mock_search_response():
                 "linkToScreenshot": "https://arquivo.pt/wayback/20050315120000/http://www.publico.pt/politica/eleicoes2005?id=screen",
                 "linkToNoFrame": "https://arquivo.pt/wayback/noFrame/20050315120000/http://www.publico.pt/politica/eleicoes2005",
                 "linkToExtractedText": "https://arquivo.pt/wayback/20050315120000id_/http://www.publico.pt/politica/eleicoes2005",
-                "snippet": "Resultados das <span class='highlight'>eleições</span> legislativas 2005",
+                "snippet": (
+                    "Resultados das <span class='highlight'>eleições</span> "
+                    "legislativas 2005"
+                ),
                 "mimeType": "text/html",
                 "statusCode": "200",
                 "contentLength": 12345,

@@ -1,9 +1,11 @@
 """Tests for get_snapshot and extract_text tools."""
 
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
-from arquivo_pt_mcp import get_snapshot, extract_text, _strip_html
+
+from arquivo_pt_mcp import _strip_html, extract_text, get_snapshot
 
 
 class TestGetSnapshot:
@@ -30,14 +32,8 @@ class TestGetSnapshot:
         mock_resp = MagicMock()
         mock_resp.text = cdx_response
         mock_resp.json.return_value = json.loads(cdx_response)
-        mock_resp.raise_for_status = MagicMock()
 
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("arquivo_pt_mcp._client", return_value=mock_client):
+        with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
             result = await get_snapshot("http://publico.pt")
 
         assert result["found"] is True
@@ -51,14 +47,8 @@ class TestGetSnapshot:
         mock_resp = MagicMock()
         mock_resp.text = cdx_response
         mock_resp.json.return_value = []
-        mock_resp.raise_for_status = MagicMock()
 
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("arquivo_pt_mcp._client", return_value=mock_client):
+        with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
             result = await get_snapshot("http://nonexistent.example.pt")
 
         assert result["found"] is False

@@ -1,7 +1,8 @@
 """Tests for helper utilities."""
 
 import pytest
-from arquivo_pt_mcp import _normalize_date, _ts_to_iso, _strip_html
+
+from arquivo_pt_mcp import _normalize_date, _strip_html, _ts_to_iso
 
 
 class TestNormalizeDate:
