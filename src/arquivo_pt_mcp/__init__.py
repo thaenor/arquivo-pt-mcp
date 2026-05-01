@@ -115,9 +115,11 @@ async def _fetch_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) 
         except httpx.TimeoutException as e:
             last_exc = e
         except httpx.HTTPStatusError as e:
-            if e.response.status_code < 500:
+            if e.response.status_code != 429 and e.response.status_code < 500:
                 raise  # client errors don't benefit from retry
             last_exc = e
+        if attempt < MAX_RETRIES:
+            await asyncio.sleep(2**attempt)
     raise last_exc  # type: ignore[misc]
 
 
