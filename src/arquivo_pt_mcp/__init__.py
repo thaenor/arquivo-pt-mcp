@@ -29,6 +29,7 @@ from typing import Any
 from urllib.parse import quote  # noqa: F401 — kept for future URL-encoding needs
 
 import httpx
+from cachetools import TTLCache
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
@@ -44,6 +45,19 @@ DEFAULT_TIMEOUT = 30.0
 MAX_RETRIES = 2
 
 server = Server("arquivo-pt")
+
+# ─── caching ────────────────────────────────────────────────
+
+CDX_CACHE = TTLCache(maxsize=1000, ttl=15 * 60)
+SEARCH_CACHE = TTLCache(maxsize=1000, ttl=15 * 60)
+SNAPSHOT_CACHE = TTLCache(maxsize=1000, ttl=60 * 60)
+
+
+def clear_cache() -> None:
+    """Clear all module-level caches (useful for testing)."""
+    CDX_CACHE.clear()
+    SEARCH_CACHE.clear()
+    SNAPSHOT_CACHE.clear()
 
 
 # ─── helpers ────────────────────────────────────────────────
@@ -118,6 +132,10 @@ async def search(
     site_search: str | None = None,
 ) -> dict[str, Any]:
     """Full-text search across Arquivo.pt."""
+    cache_key = (query, max_items, from_date, to_date, site_search)
+    if cache_key in SEARCH_CACHE:
+        return SEARCH_CACHE[cache_key]
+
     params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
     if f := _normalize_date(from_date):
         params["from"] = f
@@ -146,12 +164,14 @@ async def search(
                 "status_code": item.get("statusCode"),
             }
         )
-    return {
+    result = {
         "query": query,
         "total_estimated": data.get("estimated_nr_results"),
         "returned": len(items),
         "results": items,
     }
+    SEARCH_CACHE[cache_key] = result
+    return result
 
 
 async def image_search(
@@ -163,6 +183,10 @@ async def image_search(
     image_type: str | None = None,
 ) -> dict[str, Any]:
     """Search 1.8B+ archived images on Arquivo.pt (Dionisius)."""
+    cache_key = (query, max_items, from_date, to_date, site_search, image_type)
+    if cache_key in SEARCH_CACHE:
+        return SEARCH_CACHE[cache_key]
+
     params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
     if f := _normalize_date(from_date):
         params["from"] = f
@@ -191,16 +215,22 @@ async def image_search(
                 "mime": item.get("mimeType"),
             }
         )
-    return {
+    result = {
         "query": query,
         "total_estimated": data.get("estimated_nr_results"),
         "returned": len(items),
         "results": items,
     }
+    SEARCH_CACHE[cache_key] = result
+    return result
 
 
 async def list_versions(url: str, limit: int = 50) -> dict[str, Any]:
     """List every archived capture of a URL via the CDX server."""
+    cache_key = (url, limit)
+    if cache_key in CDX_CACHE:
+        return CDX_CACHE[cache_key]
+
     params = {"url": url, "output": "json", "limit": min(limit, 500)}
     async with _client() as client:
         resp = await _fetch_with_retry(client, CDX, params=params)
@@ -259,7 +289,9 @@ async def list_versions(url: str, limit: int = 50) -> dict[str, Any]:
                     }
                 )
 
-    return {"url": url, "count": len(captures), "captures": captures}
+    result = {"url": url, "count": len(captures), "captures": captures}
+    CDX_CACHE[cache_key] = result
+    return result
 
 
 async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]:
@@ -269,6 +301,17 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
         snapshot_url = f"{WAYBACK}/{ts}/{url}"
     else:
         # Use CDX with limit=1 sorted descending for the latest capture.
+        cache_key = (url,)
+        if cache_key in CDX_CACHE:
+            cached = CDX_CACHE[cache_key]
+            return {
+                "url": url,
+                "found": True,
+                "timestamp": cached["timestamp"],
+                "archive_url": cached["archive_url"],
+                "no_frame_url": cached["no_frame_url"],
+                "captured_at_iso": cached["captured_at_iso"],
+            }
         params = {"url": url, "output": "json", "limit": 1, "sort": "reverse"}
         async with _client() as client:
             resp = await _fetch_with_retry(client, CDX, params=params)
@@ -280,7 +323,7 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
         ts = rec.get("timestamp", "")
         snapshot_url = f"{WAYBACK}/{ts}/{url}" if ts else ""
 
-    return {
+    result = {
         "url": url,
         "found": True,
         "timestamp": ts,
@@ -290,6 +333,9 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
         ),
         "captured_at_iso": _ts_to_iso(ts),
     }
+    if not timestamp:
+        CDX_CACHE[(url,)] = result
+    return result
 
 
 async def extract_text(
@@ -300,16 +346,20 @@ async def extract_text(
     if not snap.get("found"):
         return snap
 
+    archive_url = snap.get("no_frame_url") or snap["archive_url"]
+    cache_key = (archive_url, max_chars)
+    if cache_key in SNAPSHOT_CACHE:
+        return SNAPSHOT_CACHE[cache_key]
+
     async with _client() as client:
         # Prefer the noFrame variant — strips Wayback's banner.
-        archive_url = snap.get("no_frame_url") or snap["archive_url"]
         resp = await client.get(archive_url)
         resp.raise_for_status()
         html = resp.text
 
     text = _strip_html(html)
     truncated = len(text) > max_chars
-    return {
+    result = {
         "url": url,
         "timestamp": snap.get("timestamp"),
         "archive_url": snap.get("archive_url"),
@@ -317,6 +367,8 @@ async def extract_text(
         "truncated": truncated,
         "text": text[:max_chars],
     }
+    SNAPSHOT_CACHE[cache_key] = result
+    return result
 
 
 # ─── MCP wiring ─────────────────────────────────────────────

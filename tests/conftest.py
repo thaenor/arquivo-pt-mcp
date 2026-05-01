@@ -5,6 +5,14 @@ import json
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _clear_caches():
+    """Clear module-level caches before every test to prevent cross-test leakage."""
+    from arquivo_pt_mcp import clear_cache
+
+    clear_cache()
+
+
 @pytest.fixture
 def mock_search_response():
     """Sample text search API response."""
