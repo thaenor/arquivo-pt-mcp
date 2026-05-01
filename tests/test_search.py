@@ -34,15 +34,11 @@ async def test_search_with_date_range(mock_search_response):
     mock_resp.json.return_value = mock_search_response
     mock_resp.text = json.dumps(mock_search_response)
 
-    with (
-        patch(
-            "arquivo_pt_mcp._fetch_with_retry",
-            new=AsyncMock(return_value=mock_resp),
-        ) as mock_fetch
-    ):
-        result = await search(
-            "eleições", from_date="2004", to_date="2006-06"
-        )
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        result = await search("eleições", from_date="2004", to_date="2006-06")
 
     assert result["query"] == "eleições"
     # Verify the params were passed

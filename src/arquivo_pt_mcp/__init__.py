@@ -119,9 +119,9 @@ async def search(
 ) -> dict[str, Any]:
     """Full-text search across Arquivo.pt."""
     params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
-    if (f := _normalize_date(from_date)):
+    if f := _normalize_date(from_date):
         params["from"] = f
-    if (t := _normalize_date(to_date)):
+    if t := _normalize_date(to_date):
         params["to"] = t
     if site_search:
         params["siteSearch"] = site_search
@@ -164,9 +164,9 @@ async def image_search(
 ) -> dict[str, Any]:
     """Search 1.8B+ archived images on Arquivo.pt (Dionisius)."""
     params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
-    if (f := _normalize_date(from_date)):
+    if f := _normalize_date(from_date):
         params["from"] = f
-    if (t := _normalize_date(to_date)):
+    if t := _normalize_date(to_date):
         params["to"] = t
     if site_search:
         params["siteSearch"] = site_search
@@ -419,8 +419,7 @@ async def list_tools() -> list[Tool]:
         Tool(
             name="extract_text",
             description=(
-                "Fetch an archived snapshot and return its readable text content"
-                " (HTML stripped)."
+                "Fetch an archived snapshot and return its readable text content (HTML stripped)."
             ),
             inputSchema={
                 "type": "object",
@@ -463,8 +462,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
             TextContent(
                 type="text",
                 text=(
-                    f"arquivo.pt returned HTTP {e.response.status_code}:"
-                    f" {e.response.text[:500]}"
+                    f"arquivo.pt returned HTTP {e.response.status_code}: {e.response.text[:500]}"
                 ),
             )
         ]
@@ -472,10 +470,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return [
             TextContent(
                 type="text",
-                text=(
-                    f"arquivo.pt request timed out after"
-                    f" {DEFAULT_TIMEOUT}s"
-                ),
+                text=(f"arquivo.pt request timed out after {DEFAULT_TIMEOUT}s"),
             )
         ]
     except Exception as e:

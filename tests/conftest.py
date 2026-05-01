@@ -19,8 +19,7 @@ def mock_search_response():
                 "linkToNoFrame": "https://arquivo.pt/wayback/noFrame/20050315120000/http://www.publico.pt/politica/eleicoes2005",
                 "linkToExtractedText": "https://arquivo.pt/wayback/20050315120000id_/http://www.publico.pt/politica/eleicoes2005",
                 "snippet": (
-                    "Resultados das <span class='highlight'>eleições</span> "
-                    "legislativas 2005"
+                    "Resultados das <span class='highlight'>eleições</span> legislativas 2005"
                 ),
                 "mimeType": "text/html",
                 "statusCode": "200",

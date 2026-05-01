@@ -31,12 +31,10 @@ async def test_image_search_with_type_filter(mock_image_search_response):
     mock_resp.json.return_value = mock_image_search_response
     mock_resp.text = json.dumps(mock_image_search_response)
 
-    with (
-        patch(
-            "arquivo_pt_mcp._fetch_with_retry",
-            new=AsyncMock(return_value=mock_resp),
-        ) as mock_fetch
-    ):
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
         await image_search("Porto", image_type="jpeg")
 
     params = mock_fetch.call_args.kwargs.get("params", {})
