@@ -122,6 +122,15 @@ definida. No GitHub Actions correm automaticamente uma vez por dia (agendamento
 noturno) e também podem ser disparados manualmente via `workflow_dispatch` — não
 bloqueiam PRs.
 
+**Nota sobre o GitHub Actions:** Os runners padrão do GitHub estão alojados nos
+EUA. A conectividade TCP transatlântica para `arquivo.pt` (alojado em Portugal)
+é por vezes pouco fiável — os testes podem falhar com `httpx.ConnectError` ou
+`httpx.ConnectTimeout` independentemente da qualidade do código. O projeto usa
+`MAX_RETRIES=5` com backoff exponencial para mitigar este problema, mas uma
+falha ocasional no CI noturno é esperada e não indica uma regressão. Para
+execuções locais (a partir de qualquer localização na Europa) os testes passam
+de forma consistente.
+
 ### Prémio Arquivo.pt
 
 Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://sobre.arquivo.pt/pt/areas-de-intervencao/premio-arquivo-pt/)**, que incentiva a criação de ferramentas e aplicações que aproveitam o arquivo web português para fins educativos, científicos, culturais e técnicos.
@@ -251,6 +260,14 @@ These tests are marked with `@pytest.mark.integration` and skipped by default.
 They only run when the `RUN_INTEGRATION=1` environment variable is set. On
 GitHub Actions they run automatically once per day (nightly schedule) and can
 also be triggered manually via `workflow_dispatch` — they never block PRs.
+
+**GitHub Actions note:** Standard GitHub-hosted runners are US-based.
+Transatlantic TCP connectivity to `arquivo.pt` (hosted in Portugal) is
+sometimes unreliable — tests may fail with `httpx.ConnectError` or
+`httpx.ConnectTimeout` regardless of code quality. The project uses
+`MAX_RETRIES=5` with exponential backoff to mitigate this, but an occasional
+failure in the nightly CI run is expected and does not indicate a regression.
+When run locally from a European location the tests pass consistently.
 
 ### Prémio Arquivo.pt
 

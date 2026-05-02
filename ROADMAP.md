@@ -15,7 +15,7 @@ The initial release ships a working MCP server with the five core tools, publish
 - [x] `list_versions` — list all CDX captures for a given URL
 - [x] `get_snapshot` — retrieve a specific archived page by URL + timestamp
 - [x] `extract_text` — fetch an archived page and return plain text (HTML stripped)
-- [x] Published to PyPI (`pip install arquivo-pt-mcp`)
+- [ ] Published to PyPI (`pip install arquivo-pt-mcp`)
 - [x] CI pipeline (GitHub Actions)
 - [x] MIT licence
 - [x] Bilingual README (🇵🇹 / 🇬🇧)

@@ -42,7 +42,7 @@ WAYBACK = f"{ARQUIVO_BASE}/wayback"
 
 USER_AGENT = "arquivo-pt-mcp/0.1.0 (https://github.com/thaenor/arquivo-pt-mcp)"
 DEFAULT_TIMEOUT = 30.0
-MAX_RETRIES = 2
+MAX_RETRIES = 5
 
 server = Server("arquivo-pt")
 

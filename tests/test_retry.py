@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from arquivo_pt_mcp import _fetch_with_retry
+from arquivo_pt_mcp import MAX_RETRIES, _fetch_with_retry
 
 
 class FakeResponse:
@@ -51,11 +51,11 @@ async def test_fetch_with_retry_429_then_success():
 async def test_fetch_with_retry_429_exhausted():
     """If 429 persists through all retries, the last exception should be raised."""
     client = AsyncMock()
-    client.get.side_effect = [FakeResponse(429)] * 3
+    client.get.side_effect = [FakeResponse(429)] * (MAX_RETRIES + 1)
 
     with patch("arquivo_pt_mcp.asyncio.sleep") as mock_sleep:
         with pytest.raises(httpx.HTTPStatusError):
             await _fetch_with_retry(client, "https://example.com/test")
 
-    assert client.get.call_count == 3
-    assert mock_sleep.call_count == 2
+    assert client.get.call_count == MAX_RETRIES + 1
+    assert mock_sleep.call_count == MAX_RETRIES
