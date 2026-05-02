@@ -33,6 +33,15 @@ from cachetools import TTLCache
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+from pydantic import ValidationError
+
+from arquivo_pt_mcp.models import (
+    ExtractTextParams,
+    GetSnapshotParams,
+    ImageSearchParams,
+    ListVersionsParams,
+    SearchParams,
+)
 
 ARQUIVO_BASE = "https://arquivo.pt"
 TEXTSEARCH = f"{ARQUIVO_BASE}/textsearch"
@@ -173,7 +182,7 @@ async def search(
     if cache_key in SEARCH_CACHE:
         return SEARCH_CACHE[cache_key]
 
-    params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
+    params: dict[str, Any] = {"q": query, "maxItems": max_items}
     if f := _normalize_date(from_date):
         params["from"] = f
     if t := _normalize_date(to_date):
@@ -223,7 +232,7 @@ async def image_search(
     if cache_key in SEARCH_CACHE:
         return SEARCH_CACHE[cache_key]
 
-    params: dict[str, Any] = {"q": query, "maxItems": max(1, min(max_items, 50))}
+    params: dict[str, Any] = {"q": query, "maxItems": max_items}
     if f := _normalize_date(from_date):
         params["from"] = f
     if t := _normalize_date(to_date):
@@ -271,7 +280,7 @@ async def list_versions(url: str, limit: int = 50, offset: int = 0) -> dict[str,
     if cache_key in CDX_CACHE:
         return CDX_CACHE[cache_key]
 
-    params = {"url": url, "output": "json", "limit": min(limit, 500)}
+    params = {"url": url, "output": "json", "limit": limit}
     if offset > 0:
         params["offset"] = offset
     async with _client() as client:
@@ -489,6 +498,15 @@ async def list_tools() -> list[Tool]:
     ]
 
 
+PARAM_MODELS = {
+    "search": SearchParams,
+    "image_search": ImageSearchParams,
+    "list_versions": ListVersionsParams,
+    "get_snapshot": GetSnapshotParams,
+    "extract_text": ExtractTextParams,
+}
+
+
 @server.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     handlers = {
@@ -501,6 +519,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     handler = handlers.get(name)
     if not handler:
         return [TextContent(type="text", text=f"unknown tool: {name}")]
+
+    model = PARAM_MODELS.get(name)
+    if model:
+        try:
+            arguments = model(**arguments).model_dump()
+        except ValidationError as e:
+            return [TextContent(type="text", text=f"invalid arguments: {e}")]
+
     try:
         result = await handler(**arguments)
         return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]

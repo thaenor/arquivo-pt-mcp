@@ -140,6 +140,7 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 - [ ] **Guardar Página Agora** (*Save Page Now*) — requer credenciais de API
 - [x] Cache com TTL para reduzir chamadas ao Arquivo.pt
 - [x] Gestão de *rate limits* com retentativas exponenciais
+- [x] Validação de inputs com modelos Pydantic
 - [x] Suporte para pesquisa avançada por domínio e coleção
 - [x] Integração com outros clientes MCP (Zed, Cline, Windsurf)
 
@@ -278,6 +279,7 @@ This project was built for the **[Prémio Arquivo.pt](https://sobre.arquivo.pt/p
 - [ ] **Save Page Now** — requires API credentials
 - [x] TTL caching to reduce calls to Arquivo.pt
 - [x] Rate-limit handling with exponential backoff
+- [x] Input validation with Pydantic models
 - [x] Advanced search by domain and collection
 - [x] Integration with additional MCP clients (Zed, Cline, Windsurf)
 

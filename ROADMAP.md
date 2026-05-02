@@ -17,20 +17,19 @@ The initial release ships a working MCP server with the five core tools, publish
 - [x] `extract_text` — fetch an archived page and return plain text (HTML stripped)
 - [ ] Published to PyPI (`pip install arquivo-pt-mcp`)
 - [x] CI pipeline (GitHub Actions)
-- [x] MIT licence
 - [x] Bilingual README (🇵🇹 / 🇬🇧)
 
 ---
 
-## Milestone 2 — Reliability & Performance
+## Milestone 2 — Reliability & Performance ✅
 
 Focus: make the server production-ready for heavy, unattended use.
 
-- [ ] **TTL caching** — in-memory (or optional Redis) cache for search and CDX responses to reduce redundant calls to Arquivo.pt
-- [ ] **Rate-limit handling** — detect `429` responses and retry with configurable exponential backoff
-- [ ] **Timeout & error normalisation** — consistent `McpError` codes for network failures, invalid timestamps, and empty result sets
-- [ ] **Input validation** — stricter Pydantic models for all tool arguments (date formats, URL sanity, result count bounds)
-- [ ] **Test coverage ≥ 80 %** — expand the `tests/` suite with async unit tests and mocked HTTP responses
+- [x] **TTL caching** — in-memory `TTLCache` for search, CDX, and snapshot responses (max 1000 entries each; 15 min TTL for search/CDX, 1 h for snapshots)
+- [x] **Rate-limit handling** — detect `429` and 5xx responses, retry with exponential backoff (`2^attempt` seconds, up to `MAX_RETRIES=5`)
+- [x] **Timeout & error normalisation** — `call_tool` dispatcher catches `httpx.HTTPStatusError`, `httpx.TimeoutException`, and generic exceptions, returning consistent error messages
+- [x] **Input validation** — Pydantic models for all five tools with range/required-field constraints, validated in the `call_tool` dispatcher
+- [x] **Test coverage ≥ 80 %** — 39 unit tests + 28 integration tests; coverage at 85 % for the main module
 
 ---
 
