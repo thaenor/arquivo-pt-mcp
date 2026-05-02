@@ -1,7 +1,6 @@
 # arquivo-pt-mcp
 
-[![PyPI](https://img.shields.io/pypi/v/arquivo-pt-mcp)](https://pypi.org/project/arquivo-pt-mcp/)
-[![Python Versions](https://img.shields.io/pypi/pyversions/arquivo-pt-mcp)](https://pypi.org/project/arquivo-pt-mcp/)
+[![Python Versions](https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-blue)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/thaenor/arquivo-pt-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/thaenor/arquivo-pt-mcp/actions/workflows/ci.yml)
 
@@ -25,14 +24,19 @@ O `arquivo-pt-mcp` expõe cinco **ferramentas** ao modelo de linguagem, permitin
 
 ### Instalação
 
+> ⚠️ **Ainda não publicado no PyPI.**
+> Instale a partir do código fonte ou via `uv`:
+
 ```bash
-pip install arquivo-pt-mcp
+git clone https://github.com/thaenor/arquivo-pt-mcp.git
+cd arquivo-pt-mcp
+pip install -e ".[dev]"
 ```
 
 Ou, se preferir usar o `uv`:
 
 ```bash
-uv pip install arquivo-pt-mcp
+uv pip install -e ".[dev]"
 ```
 
 ### Configuração
@@ -166,14 +170,19 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 
 ### Installation
 
+> ⚠️ **Not yet published to PyPI.**
+> Install from source with `pip` or `uv`:
+
 ```bash
-pip install arquivo-pt-mcp
+git clone https://github.com/thaenor/arquivo-pt-mcp.git
+cd arquivo-pt-mcp
+pip install -e ".[dev]"
 ```
 
 Or with `uv`:
 
 ```bash
-uv pip install arquivo-pt-mcp
+uv pip install -e ".[dev]"
 ```
 
 ### Configuration
