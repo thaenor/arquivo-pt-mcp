@@ -25,3 +25,4 @@ coverage.xml
 *.swo
 *~
 .DS_Store
+temp

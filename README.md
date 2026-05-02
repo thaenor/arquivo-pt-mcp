@@ -108,6 +108,20 @@ ruff format src tests
 pytest --cov=arquivo_pt_mcp
 ```
 
+#### Testes de integração
+
+Opcionalmente, pode executar os testes de integração contra a API real do Arquivo.pt:
+
+```bash
+RUN_INTEGRATION=1 pytest -m integration -v
+```
+
+Estes testes estão marcados com `@pytest.mark.integration` e são ignorados por
+padrão. Apenas executam quando a variável de ambiente `RUN_INTEGRATION=1` está
+definida. No GitHub Actions correm automaticamente uma vez por dia (agendamento
+noturno) e também podem ser disparados manualmente via `workflow_dispatch` — não
+bloqueiam PRs.
+
 ### Prémio Arquivo.pt
 
 Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://sobre.arquivo.pt/pt/areas-de-intervencao/premio-arquivo-pt/)**, que incentiva a criação de ferramentas e aplicações que aproveitam o arquivo web português para fins educativos, científicos, culturais e técnicos.
@@ -115,10 +129,10 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 ### Roadmap
 
 - [ ] **Guardar Página Agora** (*Save Page Now*) — requer credenciais de API
-- [ ] Cache com TTL para reduzir chamadas ao Arquivo.pt
-- [ ] Gestão de *rate limits* com retentativas exponenciais
-- [ ] Suporte para pesquisa avançada por domínio e coleção
-- [ ] Integração com outros clientes MCP (Zed, Cline, Windsurf)
+- [x] Cache com TTL para reduzir chamadas ao Arquivo.pt
+- [x] Gestão de *rate limits* com retentativas exponenciais
+- [x] Suporte para pesquisa avançada por domínio e coleção
+- [x] Integração com outros clientes MCP (Zed, Cline, Windsurf)
 
 ### Licença
 
@@ -225,6 +239,19 @@ ruff format src tests
 pytest --cov=arquivo_pt_mcp
 ```
 
+#### Integration tests
+
+Optionally, run integration tests against the live Arquivo.pt API:
+
+```bash
+RUN_INTEGRATION=1 pytest -m integration -v
+```
+
+These tests are marked with `@pytest.mark.integration` and skipped by default.
+They only run when the `RUN_INTEGRATION=1` environment variable is set. On
+GitHub Actions they run automatically once per day (nightly schedule) and can
+also be triggered manually via `workflow_dispatch` — they never block PRs.
+
 ### Prémio Arquivo.pt
 
 This project was built for the **[Prémio Arquivo.pt](https://sobre.arquivo.pt/pt/areas-de-intervencao/premio-arquivo-pt/)**, a Portuguese contest that encourages the creation of tools and applications leveraging the Portuguese Web Archive for educational, scientific, cultural, and technical purposes.
@@ -232,10 +259,10 @@ This project was built for the **[Prémio Arquivo.pt](https://sobre.arquivo.pt/p
 ### Roadmap
 
 - [ ] **Save Page Now** — requires API credentials
-- [ ] TTL caching to reduce calls to Arquivo.pt
-- [ ] Rate-limit handling with exponential backoff
-- [ ] Advanced search by domain and collection
-- [ ] Integration with additional MCP clients (Zed, Cline, Windsurf)
+- [x] TTL caching to reduce calls to Arquivo.pt
+- [x] Rate-limit handling with exponential backoff
+- [x] Advanced search by domain and collection
+- [x] Integration with additional MCP clients (Zed, Cline, Windsurf)
 
 ### License
 
