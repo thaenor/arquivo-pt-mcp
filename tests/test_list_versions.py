@@ -23,7 +23,9 @@ async def test_list_versions_jsonl_format(mock_cdx_jsonl_response):
     assert result["captures"][0]["mime"] == "text/html"
     assert result["captures"][1]["status"] == "200"
     assert result["captures"][1]["digest"] == "SHA1GHIJKL"
-    assert result["captures"][0]["archive_url"].startswith("https://arquivo.pt/wayback/20050315120000/")
+    assert result["captures"][0]["archive_url"].startswith(
+        "https://arquivo.pt/wayback/20050315120000/"
+    )
 
 
 @pytest.mark.asyncio

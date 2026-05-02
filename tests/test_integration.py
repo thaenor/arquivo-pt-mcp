@@ -180,9 +180,7 @@ class TestExtractText:
         assert ">" not in result["text"]
 
     async def test_max_chars_truncation(self):
-        result = await extract_text(
-            KNOWN_ARCHIVED_URL, timestamp=KNOWN_TIMESTAMP_2010, max_chars=5
-        )
+        result = await extract_text(KNOWN_ARCHIVED_URL, timestamp=KNOWN_TIMESTAMP_2010, max_chars=5)
         assert result["char_count"] > 0
         assert len(result["text"]) <= 5
         assert result["truncated"] is True
