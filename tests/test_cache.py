@@ -28,13 +28,12 @@ async def test_search_cache_avoids_second_http_request(mock_search_response):
 
 
 @pytest.mark.asyncio
-async def test_list_versions_cache_avoids_second_http_request(mock_cdx_json_response):
+async def test_list_versions_cache_avoids_second_http_request(mock_cdx_jsonl_response):
     """Calling list_versions twice with the same args should only make one HTTP request."""
     clear_cache()
 
     mock_resp = MagicMock()
-    mock_resp.text = mock_cdx_json_response
-    mock_resp.json.return_value = json.loads(mock_cdx_json_response)
+    mock_resp.text = mock_cdx_jsonl_response
 
     fetch_mock = AsyncMock(return_value=mock_resp)
 

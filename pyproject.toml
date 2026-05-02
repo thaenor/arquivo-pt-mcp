@@ -42,6 +42,9 @@ packages = ["src/arquivo_pt_mcp"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "integration: tests that hit the live arquivo.pt API (skip by default, run with RUN_INTEGRATION=1)",
+]
 
 [tool.ruff]
 target-version = "py311"

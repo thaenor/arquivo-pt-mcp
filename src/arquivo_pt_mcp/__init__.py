@@ -97,11 +97,46 @@ def _strip_html(html: str) -> str:
     pages, very little text may be extractable. Consider linkToExtractedText
     in the Arquivo.pt API for server-side extraction.
     """
+    html = re.sub(r"<!--.*?-->", " ", html, flags=re.S)
     html = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", html, flags=re.I | re.S)
     text = re.sub(r"<[^>]+>", " ", html)
     text = re.sub(r"&\w+;", " ", text)  # strip HTML entities
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def _parse_cdx_jsonl(text: str) -> list[dict[str, Any]]:
+    """Parse Arquivo.pt CDX server output (JSON-Lines: one JSON object per line).
+
+    Real keys: urlkey, timestamp, url, mime, status, digest, length, offset,
+    filename, collection, source, source-coll. Empty body → []. Malformed
+    lines are skipped rather than aborting the whole response.
+    """
+    captures: list[dict[str, Any]] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        ts = rec.get("timestamp", "")
+        orig = rec.get("url", "")
+        captures.append(
+            {
+                "timestamp": ts,
+                "original": orig,
+                "mime": rec.get("mime", ""),
+                "status": rec.get("status", ""),
+                "digest": rec.get("digest", ""),
+                "length": rec.get("length", ""),
+                "archive_url": f"{WAYBACK}/{ts}/{orig}" if ts and orig else "",
+            }
+        )
+    return captures
 
 
 async def _fetch_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
@@ -163,7 +198,6 @@ async def search(
                 "captured": item.get("tstamp"),
                 "snippet": item.get("snippet"),
                 "mime": item.get("mimeType"),
-                "status_code": item.get("statusCode"),
             }
         )
     result = {
@@ -204,22 +238,26 @@ async def image_search(
         data = resp.json()
 
     items = []
-    for item in data.get("response_items", []):
+    for item in data.get("responseItems", []):
+        alt_list = item.get("imgAlt") or []
         items.append(
             {
-                "title": item.get("title"),
-                "original_url": item.get("originalURL"),
-                "archive_url": item.get("linkToArchive"),
-                "image_url": item.get("linkToScreenshot") or item.get("linkToArchive"),
-                "source_page_url": item.get("linkToNoFrame"),
-                "captured": item.get("tstamp"),
-                "snippet": item.get("snippet"),
-                "mime": item.get("mimeType"),
+                "title": item.get("pageTitle"),
+                "original_url": item.get("pageURL"),
+                "image_url": item.get("imgSrc") or item.get("imgLinkToArchive"),
+                "image_archive_url": item.get("imgLinkToArchive"),
+                "page_archive_url": item.get("pageLinkToArchive"),
+                "captured": item.get("imgTstamp"),
+                "page_captured": item.get("pageTstamp"),
+                "width": item.get("imgWidth"),
+                "height": item.get("imgHeight"),
+                "alt": alt_list[0] if isinstance(alt_list, list) and alt_list else None,
+                "mime": item.get("imgMimeType"),
             }
         )
     result = {
         "query": query,
-        "total_estimated": data.get("estimated_nr_results"),
+        "total_estimated": data.get("totalItems"),
         "returned": len(items),
         "results": items,
     }
@@ -240,59 +278,7 @@ async def list_versions(url: str, limit: int = 50, offset: int = 0) -> dict[str,
         resp = await _fetch_with_retry(client, CDX, params=params)
         text = resp.text.strip()
 
-    captures: list[dict[str, Any]] = []
-
-    # Try JSON-array-of-arrays format first (CDX-J)
-    if text.startswith("["):
-        try:
-            rows = json.loads(text)
-            if rows and isinstance(rows[0], list):
-                headers = rows[0]
-                for row in rows[1:]:
-                    if not isinstance(row, list):
-                        continue
-                    rec = dict(zip(headers, row))
-                    ts = rec.get("timestamp", "")
-                    orig = rec.get("original", "")
-                    captures.append(
-                        {
-                            "timestamp": ts,
-                            "original": orig,
-                            "mime": rec.get("mimetype", ""),
-                            "status": rec.get("statuscode", ""),
-                            "digest": rec.get("digest", ""),
-                            "archive_url": f"{WAYBACK}/{ts}/{orig}" if ts and orig else "",
-                        }
-                    )
-        except (json.JSONDecodeError, IndexError):
-            pass  # fall through to text parsing
-
-    if not captures:
-        # Space-separated CDX format fallback
-        # Standard CDX fields: CDX N a b s m k e r S V g
-        # But the format varies — handle lines with 7+ fields gracefully
-        for line in text.splitlines():
-            parts = line.split()
-            if len(parts) >= 11 and parts[0].startswith("cdx"):
-                # CDX-J header line — skip
-                continue
-            if len(parts) >= 7:
-                # Flexible parsing: try to extract known positions
-                # Standard: surt_timestamp original mimetype statuscode digest length ...
-                ts = parts[1] if len(parts) > 1 else ""
-                orig = parts[2] if len(parts) > 2 else ""
-                mime = parts[3] if len(parts) > 3 else ""
-                status = parts[4] if len(parts) > 4 else ""
-                captures.append(
-                    {
-                        "timestamp": ts,
-                        "original": orig,
-                        "mime": mime,
-                        "status": status,
-                        "archive_url": f"{WAYBACK}/{ts}/{orig}" if ts and orig else "",
-                    }
-                )
-
+    captures = _parse_cdx_jsonl(text)
     result = {"url": url, "count": len(captures), "captures": captures}
     CDX_CACHE[cache_key] = result
     return result
@@ -319,12 +305,10 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
         params = {"url": url, "output": "json", "limit": 1, "sort": "reverse"}
         async with _client() as client:
             resp = await _fetch_with_retry(client, CDX, params=params)
-            rows = resp.json() if resp.text.startswith("[") else []
-        if not rows or len(rows) < 2:
+            captures = _parse_cdx_jsonl(resp.text)
+        if not captures:
             return {"url": url, "found": False, "message": "no captures found"}
-        headers, row = rows[0], rows[1]
-        rec = dict(zip(headers, row))
-        ts = rec.get("timestamp", "")
+        ts = captures[0]["timestamp"]
         snapshot_url = f"{WAYBACK}/{ts}/{url}" if ts else ""
 
     result = {
@@ -350,14 +334,15 @@ async def extract_text(
     if not snap.get("found"):
         return snap
 
-    archive_url = snap.get("no_frame_url") or snap["archive_url"]
-    cache_key = (archive_url, max_chars)
+    raw_archive_url = snap.get("no_frame_url") or snap["archive_url"]
+    cache_key = (raw_archive_url, max_chars)
     if cache_key in SNAPSHOT_CACHE:
         return SNAPSHOT_CACHE[cache_key]
 
     async with _client() as client:
-        # Prefer the noFrame variant — strips Wayback's banner.
-        resp = await client.get(archive_url)
+        resp = await client.get(raw_archive_url)
+        if resp.status_code == 404 and snap.get("no_frame_url"):
+            resp = await client.get(snap["archive_url"])
         resp.raise_for_status()
         html = resp.text
 
@@ -539,10 +524,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return [TextContent(type="text", text=f"error in {name}: {type(e).__name__}: {e}")]
 
 
-async def main() -> None:
+def main() -> None:
+    """Synchronous entry point for the console script."""
+    asyncio.run(_async_main())
+
+
+async def _async_main() -> None:
     async with stdio_server() as (read, write):
         await server.run(read, write, server.create_initialization_options())
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

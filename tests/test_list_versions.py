@@ -1,6 +1,5 @@
 """Tests for the list_versions (CDX) tool."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -9,11 +8,10 @@ from arquivo_pt_mcp import list_versions
 
 
 @pytest.mark.asyncio
-async def test_list_versions_json_format(mock_cdx_json_response):
-    """Test CDX response parsing with JSON array-of-arrays format."""
+async def test_list_versions_jsonl_format(mock_cdx_jsonl_response):
+    """Real CDX returns JSON-Lines: one JSON object per line."""
     mock_resp = MagicMock()
-    mock_resp.text = mock_cdx_json_response
-    mock_resp.json.return_value = json.loads(mock_cdx_json_response)
+    mock_resp.text = mock_cdx_jsonl_response
 
     with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
         result = await list_versions("publico.pt")
@@ -21,31 +19,18 @@ async def test_list_versions_json_format(mock_cdx_json_response):
     assert result["url"] == "publico.pt"
     assert result["count"] == 2
     assert result["captures"][0]["timestamp"] == "20050315120000"
+    assert result["captures"][0]["original"] == "http://publico.pt/"
+    assert result["captures"][0]["mime"] == "text/html"
     assert result["captures"][1]["status"] == "200"
-
-
-@pytest.mark.asyncio
-async def test_list_versions_text_format(mock_cdx_text_response):
-    """Test CDX response parsing with space-separated text format."""
-    mock_resp = MagicMock()
-    mock_resp.text = mock_cdx_text_response
-    mock_resp.json.side_effect = Exception("Not JSON")
-
-    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
-        result = await list_versions("publico.pt")
-
-    assert result["url"] == "publico.pt"
-    assert result["count"] == 1
-    assert result["captures"][0]["timestamp"] == "20050315120000"
-    assert "archive_url" in result["captures"][0]
+    assert result["captures"][1]["digest"] == "SHA1GHIJKL"
+    assert result["captures"][0]["archive_url"].startswith("https://arquivo.pt/wayback/20050315120000/")
 
 
 @pytest.mark.asyncio
 async def test_list_versions_empty_response():
-    """Test CDX with empty response."""
+    """Empty body (real API behavior for never-archived URLs)."""
     mock_resp = MagicMock()
     mock_resp.text = ""
-    mock_resp.json.return_value = {}
 
     with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
         result = await list_versions("nonexistent.example.pt")
@@ -55,11 +40,23 @@ async def test_list_versions_empty_response():
 
 
 @pytest.mark.asyncio
-async def test_list_versions_offset(mock_cdx_json_response):
-    """Test CDX query includes offset parameter when offset > 0."""
+async def test_list_versions_skips_malformed_lines(mock_cdx_jsonl_response):
+    """A malformed line in JSONL output shouldn't blow up the whole response."""
+    text = mock_cdx_jsonl_response + "\nthis-is-not-json\n"
     mock_resp = MagicMock()
-    mock_resp.text = mock_cdx_json_response
-    mock_resp.json.return_value = json.loads(mock_cdx_json_response)
+    mock_resp.text = text
+
+    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
+        result = await list_versions("publico.pt")
+
+    assert result["count"] == 2  # malformed line skipped
+
+
+@pytest.mark.asyncio
+async def test_list_versions_offset(mock_cdx_jsonl_response):
+    """Offset parameter is passed through to CDX when > 0."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
 
     with patch(
         "arquivo_pt_mcp._fetch_with_retry",
@@ -68,9 +65,6 @@ async def test_list_versions_offset(mock_cdx_json_response):
         result = await list_versions("publico.pt", limit=10, offset=10)
 
     assert result["url"] == "publico.pt"
-    # Assert the call args include offset=10 in params
-    call_args = mock_fetch.call_args
-    assert call_args is not None
-    passed_params = call_args.kwargs.get("params") or call_args[1].get("params")
+    passed_params = mock_fetch.call_args.kwargs["params"]
     assert passed_params["offset"] == 10
     assert passed_params["limit"] == 10

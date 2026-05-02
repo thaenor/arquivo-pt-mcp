@@ -21,32 +21,34 @@ class TestGetSnapshot:
 
     @pytest.mark.asyncio
     async def test_get_snapshot_latest(self):
-        """Test getting latest snapshot via CDX fallback."""
+        """Latest snapshot via CDX is parsed from real JSON-Lines format."""
         cdx_response = json.dumps(
-            [
-                ["timestamp", "original", "mimetype", "statuscode", "digest", "length"],
-                ["20240101120000", "http://publico.pt/", "text/html", "200", "SHA1:abc", "12345"],
-            ]
+            {
+                "urlkey": "pt,publico)/",
+                "timestamp": "20240101120000",
+                "url": "http://publico.pt/",
+                "mime": "text/html",
+                "status": "200",
+                "digest": "SHA1:abc",
+                "length": "12345",
+            }
         )
 
         mock_resp = MagicMock()
         mock_resp.text = cdx_response
-        mock_resp.json.return_value = json.loads(cdx_response)
 
         with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
             result = await get_snapshot("http://publico.pt")
 
         assert result["found"] is True
         assert result["timestamp"] == "20240101120000"
+        assert "noFrame" in result["no_frame_url"]
 
     @pytest.mark.asyncio
     async def test_get_snapshot_not_found(self):
-        """Test snapshot not found returns found=False."""
-        cdx_response = json.dumps([])
-
+        """Empty CDX response (real API behavior for never-archived URLs)."""
         mock_resp = MagicMock()
-        mock_resp.text = cdx_response
-        mock_resp.json.return_value = []
+        mock_resp.text = ""
 
         with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
             result = await get_snapshot("http://nonexistent.example.pt")
