@@ -1,0 +1,17 @@
+name: Deploy to HF Spaces
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+jobs:
+  deploy:
+    name: Deploy to Hugging Face Spaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: huggingface/huggingface-spaces-deploy-action@v1
+        with:
+          hf_token: ${{ secrets.HF_TOKEN }}
+          space_name: decaf-squirrel/arquivo-pt-mcp
+          repo_dir: .
