@@ -48,7 +48,7 @@ TEXTSEARCH = f"{ARQUIVO_BASE}/textsearch"
 IMAGESEARCH = f"{ARQUIVO_BASE}/imagesearch"
 CDX = f"{ARQUIVO_BASE}/wayback/cdx"
 WAYBACK = f"{ARQUIVO_BASE}/wayback"
-TEXTRACTED = f"{ARQUIVO_BASE}/textextracted"
+TEXTEXTRACTED = f"{ARQUIVO_BASE}/textextracted"
 
 USER_AGENT = "arquivo-pt-mcp/0.1.0 (https://github.com/thaenor/arquivo-pt-mcp)"
 DEFAULT_TIMEOUT = 30.0
@@ -303,9 +303,9 @@ async def list_versions(
         ]
         return {
             "url": url,
-            "total_captures": len(captures),
+            "count": len(captures),
             "summary": dict(sorted(by_year.items())),
-            "recent_captures": compact_captures,
+            "captures": compact_captures,
             "note": (
                 f"Showing {len(captures)} captures in compact form. "
                 "Set compact=false for full CDX metadata (mime, status, digest, length). "
@@ -372,23 +372,28 @@ async def extract_text(
         return SNAPSHOT_CACHE[cache_key]
 
     text = ""
-    extraction_method = "server"
+    extraction_method = ""
 
-    async with _client() as client:
-        try:
-            resp = await _fetch_with_retry(client, TEXTRACTED, params={"m": f"{url}/{ts}"})
-            text = resp.text.strip()
-        except (httpx.HTTPStatusError, httpx.TimeoutException):
-            pass
+    if ts:
+        async with _client() as client:
+            try:
+                resp = await _fetch_with_retry(client, TEXTEXTRACTED, params={"m": f"{url}/{ts}"})
+                text = resp.text.strip()
+                extraction_method = "server"
+            except (httpx.HTTPStatusError, httpx.TimeoutException):
+                pass
 
     if not text:
         extraction_method = "regex"
         async with _client() as client:
             raw_archive_url = snap.get("no_frame_url") or snap["archive_url"]
-            resp = await client.get(raw_archive_url)
-            if resp.status_code == 404 and snap.get("no_frame_url"):
-                resp = await client.get(snap["archive_url"])
-            resp.raise_for_status()
+            try:
+                resp = await _fetch_with_retry(client, raw_archive_url)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 404 and snap.get("no_frame_url"):
+                    resp = await _fetch_with_retry(client, snap["archive_url"])
+                else:
+                    raise
             text = _strip_html(resp.text)
 
     truncated = len(text) > max_chars

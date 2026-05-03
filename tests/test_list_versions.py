@@ -84,10 +84,9 @@ async def test_list_versions_compact_mode(mock_cdx_jsonl_response):
     assert "summary" in result
     assert result["summary"]["2005"] == 1
     assert result["summary"]["2006"] == 1
-    assert "recent_captures" in result
+    assert "captures" in result
     assert "note" in result
-    assert "captures" not in result
-    cap = result["recent_captures"][0]
+    cap = result["captures"][0]
     assert "mime" not in cap
     assert "digest" not in cap
     assert "status" not in cap

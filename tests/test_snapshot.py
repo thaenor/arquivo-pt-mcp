@@ -73,18 +73,12 @@ class TestExtractText:
         mock_resp.text = mock_html_response
         mock_resp.raise_for_status = MagicMock()
 
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
         with (
             patch("arquivo_pt_mcp.get_snapshot", return_value=snapshot_result),
             patch(
                 "arquivo_pt_mcp._fetch_with_retry",
-                side_effect=httpx.TimeoutException("timeout"),
+                side_effect=[httpx.TimeoutException("timeout"), mock_resp],
             ),
-            patch("arquivo_pt_mcp._client", return_value=mock_client),
         ):
             result = await extract_text("http://example.pt", timestamp="20050315")
 
@@ -169,18 +163,12 @@ class TestExtractTextServerFallback:
         mock_html_resp.text = mock_html_response
         mock_html_resp.raise_for_status = MagicMock()
 
-        mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=mock_html_resp)
-        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_client.__aexit__ = AsyncMock(return_value=False)
-
         with (
             patch("arquivo_pt_mcp.get_snapshot", return_value=snapshot_result),
             patch(
                 "arquivo_pt_mcp._fetch_with_retry",
-                side_effect=httpx.TimeoutException("timeout"),
+                side_effect=[httpx.TimeoutException("timeout"), mock_html_resp],
             ),
-            patch("arquivo_pt_mcp._client", return_value=mock_client),
         ):
             result = await extract_text("http://example.pt", timestamp="20050315")
 

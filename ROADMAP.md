@@ -37,8 +37,9 @@ Focus: make the server production-ready for heavy, unattended use.
 
 Focus: expose more of the Arquivo.pt API surface to the model.
 
-- [ ] **Advanced domain / collection search** — expose `collection` and `type` params in `search`; expose `filter`, `matchType`, `from`/`to` date range, and `sort` in `list_versions`
-- [ ] **Metadata tool** — new `get_metadata` tool returning HTTP status code, MIME type, content length, and digest for a given snapshot (redirect chain and language are not available from the Arquivo.pt API)
+- [ ] **Advanced search params** — `search`: add `collection`, `type` (MIME filter), and `offset` (pagination); `list_versions`: add `filter` (status/MIME/regex), `matchType` (`prefix`/`host`/`domain`), `from`/`to` date range, `sort`, and `closest`; `image_search`: add `size` (small/medium/large), `safeSearch`, `collection`, `offset`, and `more` (surface hidden fields: `imgDigest`, `safe` score)
+- [ ] **Screenshot tool** — new `get_screenshot` tool returning the Arquivo.pt PNG render URL for any snapshot; the screenshot endpoint (`/screenshot?url=…`) is already referenced in `search` results but is not directly accessible as a tool
+- [ ] **Metadata tool** — new `get_metadata` tool querying `/textsearch?metadata={url}/{timestamp}` to return HTTP status code, MIME type, content length, and digest for a specific capture (redirect chain and language are not available from the Arquivo.pt API)
 - [ ] **Diff tool** — new `diff_snapshots` tool comparing two snapshots of the same URL and returning a human-readable change summary
 - [ ] **Bulk CDX export** — pagination via `offset`/`limit` already works, but max limit is capped at 500 (API supports 100,000) and the response lacks pagination metadata (total count, next-page indicator)
 - [ ] **Proximity / phrase search** — phrase quotes and `-exclusion` already pass through to the API correctly, but they are undocumented in the tool descriptions and `inputSchema` (the API does not support `NEAR`, boolean operators, or wildcards)
@@ -49,8 +50,7 @@ Focus: expose more of the Arquivo.pt API surface to the model.
 
 Focus: allow the model to contribute new captures to the archive.
 
-- [ ] **`save_page_now` tool** — submit a live URL to Arquivo.pt for immediate archival (requires API credentials; document the credential setup)
-- [ ] **Credential management** — secure passing of API key via environment variable or MCP config, with clear error messages when missing
+- [ ] **`save_page_now` tool** — submit a live URL to Arquivo.pt for immediate archival via `/save/now/record/{url}`; the endpoint is anonymous (no documented auth model), but captures are slow and bulk use is discouraged by Arquivo.pt's terms of service
 - [ ] **Scheduled capture** — optional `schedule_capture` tool for recurring archival of a URL at a given interval
 
 ---
@@ -87,6 +87,7 @@ These may be promoted to a milestone based on community interest:
 - A `browse_timeline` resource exposing archive history as an MCP resource (not just a tool)
 - Support for the [CommonCrawl](https://commoncrawl.org/) CDX API as a complementary backend
 - A web UI playground for testing queries outside of an LLM client
+- **Memento TimeMap access** — `/wayback/timemap/json/{url}` returns the full capture history in RFC 7089 NDJSON; could serve as an alternative `list_versions` backend with standard Memento datetime fields and no 500-cap constraint (Memento rate limit: 400 req/180 s)
 
 ---
 
