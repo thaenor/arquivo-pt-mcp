@@ -56,9 +56,28 @@ pip install -e ".[dev]"
 
 ### Configuração
 
+> **🚀 Caminho mais fácil — sem instalação**
+>
+> Existe uma instância pública alojada em Hugging Face Spaces. Aponte qualquer cliente MCP para:
+>
+> ```
+> https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
+> ```
+>
+> Sem Python, sem `pip install`, sem terminal. Basta o URL. (Ver [instalação local](#instala%C3%A7%C3%A3o-local) abaixo se preferir correr no seu próprio computador.)
+
+#### Claude.ai (web ou desktop) — Pro/Max/Team
+
+A configuração mais simples para utilizadores não-técnicos.
+
+1. Vá a **Settings → Connectors → Add custom connector**.
+2. **Name**: `arquivo-pt`
+3. **URL**: `https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp`
+4. Guarde. As seis ferramentas ficam disponíveis em qualquer nova conversa.
+
 #### Claude Desktop
 
-Adicione ao ficheiro `claude_desktop_config.json`:
+Edite o ficheiro `claude_desktop_config.json`:
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -68,45 +87,70 @@ Adicione ao ficheiro `claude_desktop_config.json`:
 {
   "mcpServers": {
     "arquivo-pt": {
-      "command": "uv",
-      "args": ["run", "arquivo-pt-mcp"]
+      "url": "https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp"
     }
   }
 }
 ```
 
-#### Cursor
+Reinicie o Claude Desktop.
 
-No Cursor, vá a **Settings → MCP**, adicione um novo servidor e defina:
+#### Claude Code (CLI)
 
-- **Name**: `arquivo-pt`
-- **Command**: `uv run arquivo-pt-mcp`
-
-#### Zed, Cline, e outros
-
-Consulte a [documentação do MCP](https://modelcontextprotocol.io/quickstart) do seu editor. Em qualquer cliente MCP, basta apontar o comando para o pacote `arquivo-pt-mcp`.
-
-#### Modo Remoto (HTTP Streamable)
-
-O servidor pode também correr como um processo HTTP de longa duração, útil para implantações auto-hospedadas ou clientes que preferem URLs em vez de comandos locais.
+Um único comando:
 
 ```bash
-arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+claude mcp add --transport http arquivo-pt https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
 ```
 
-**Claude Desktop / Cursor (via HTTP):**
+#### Cursor
+
+**Settings → MCP → Add server**:
+
+- **Name**: `arquivo-pt`
+- **URL**: `https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp`
+
+#### ChatGPT — Plus/Team/Enterprise
+
+**Settings → Connectors → Add → MCP server URL**:
+
+```
+https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
+```
+
+#### Outros clientes MCP (Zed, Cline, Windsurf, Continue, …)
+
+Qualquer cliente que suporte o transporte **Streamable HTTP** do MCP pode usar o mesmo URL acima. Consulte a documentação do seu cliente para saber onde o colar.
+
+---
+
+#### Instalação local
+
+A instância pública é adequada para uso casual, mas é uma máquina partilhada gratuita sem garantia de disponibilidade. Corra o servidor localmente se precisar de privacidade, cache própria, ou disponibilidade garantida.
+
+**Como servidor stdio local (Claude Desktop, Cursor, etc.):**
 
 ```json
 {
   "mcpServers": {
     "arquivo-pt": {
-      "url": "http://127.0.0.1:8000/mcp"
+      "command": "uvx",
+      "args": ["arquivo-pt-mcp"]
     }
   }
 }
 ```
 
-Por predefinição liga-se a `127.0.0.1:8000`. Para expor publicamente, coloque-o atrás de um proxy inverso (Caddy, nginx, Traefik) e passe `--allowed-host <hostname>`.
+O `uvx` (do [uv](https://docs.astral.sh/uv/)) instala o pacote automaticamente na primeira execução — só precisa de ter o `uv` instalado.
+
+**Como servidor HTTP de longa duração:**
+
+```bash
+pip install arquivo-pt-mcp        # ou: uv add arquivo-pt-mcp
+arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+```
+
+Depois aponte o seu cliente para `http://127.0.0.1:8000/mcp`. Para expor publicamente, coloque-o atrás de um proxy inverso com TLS (Caddy, nginx, Traefik) e passe `--allowed-host <hostname>`.
 
 Nota: em modo HTTP as caches em memória são partilhadas entre todos os clientes ligados.
 
@@ -233,9 +277,28 @@ pip install -e ".[dev]"
 
 ### Configuration
 
+> **🚀 Easiest path — no install required**
+>
+> A public hosted instance runs on Hugging Face Spaces. Point any MCP client at:
+>
+> ```
+> https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
+> ```
+>
+> No Python, no `pip install`, no terminal. Just the URL. (See [self-hosted setup](#self-hosted-setup) below if you'd rather run it locally.)
+
+#### Claude.ai (web or desktop) — Pro/Max/Team
+
+The simplest setup for non-technical users.
+
+1. Go to **Settings → Connectors → Add custom connector**.
+2. **Name**: `arquivo-pt`
+3. **URL**: `https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp`
+4. Save. The six tools are now available in any new chat.
+
 #### Claude Desktop
 
-Add to your `claude_desktop_config.json`:
+Edit your `claude_desktop_config.json`:
 
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
@@ -245,45 +308,70 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "arquivo-pt": {
-      "command": "uv",
-      "args": ["run", "arquivo-pt-mcp"]
+      "url": "https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp"
     }
   }
 }
 ```
 
-#### Cursor
+Restart Claude Desktop.
 
-In Cursor, go to **Settings → MCP**, add a new server, and set:
+#### Claude Code (CLI)
 
-- **Name**: `arquivo-pt`
-- **Command**: `uv run arquivo-pt-mcp`
-
-#### Zed, Cline, and others
-
-Refer to your editor's [MCP documentation](https://modelcontextprotocol.io/quickstart). In any MCP client, simply point the command at the `arquivo-pt-mcp` package.
-
-#### Remote mode (Streamable HTTP)
-
-The server can also run as a long-lived HTTP process, useful for self-hosted deployments or clients that prefer URLs over local commands.
+One command:
 
 ```bash
-arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+claude mcp add --transport http arquivo-pt https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
 ```
 
-**Claude Desktop / Cursor (via HTTP):**
+#### Cursor
+
+**Settings → MCP → Add server**:
+
+- **Name**: `arquivo-pt`
+- **URL**: `https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp`
+
+#### ChatGPT — Plus/Team/Enterprise
+
+**Settings → Connectors → Add → MCP server URL**:
+
+```
+https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
+```
+
+#### Other MCP clients (Zed, Cline, Windsurf, Continue, …)
+
+Any client that speaks the MCP **Streamable HTTP** transport can use the same URL above. Refer to your client's docs for where to paste it.
+
+---
+
+#### Self-hosted setup
+
+The hosted instance is fine for casual use, but it's a free shared CPU box with no SLA. Run it yourself if you need privacy, your own caching, or guaranteed availability.
+
+**As a local stdio server (Claude Desktop, Cursor, etc.):**
 
 ```json
 {
   "mcpServers": {
     "arquivo-pt": {
-      "url": "http://127.0.0.1:8000/mcp"
+      "command": "uvx",
+      "args": ["arquivo-pt-mcp"]
     }
   }
 }
 ```
 
-Defaults to binding `127.0.0.1:8000`. To expose publicly, put it behind a TLS-terminating reverse proxy (Caddy, nginx, Traefik) and pass `--allowed-host <hostname>`.
+`uvx` (from [uv](https://docs.astral.sh/uv/)) auto-installs the package on first run — nothing to install manually beyond `uv` itself.
+
+**As a long-lived HTTP server:**
+
+```bash
+pip install arquivo-pt-mcp        # or: uv add arquivo-pt-mcp
+arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+```
+
+Then point your client at `http://127.0.0.1:8000/mcp`. To expose publicly, put it behind a TLS-terminating reverse proxy (Caddy, nginx, Traefik) and pass `--allowed-host <hostname>`.
 
 Note: in HTTP mode the in-memory caches are shared across all connected clients.
 
