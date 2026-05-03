@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arquivo-pt-mcp"
-version = "0.0.2"
+version = "0.0.3"
 description = "Model Context Protocol server for Arquivo.pt — the Portuguese Web Archive"
 readme = "README.md"
 requires-python = ">=3.11"
