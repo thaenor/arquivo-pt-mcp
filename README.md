@@ -1,3 +1,14 @@
+---
+title: Arquivo Pt MCP
+emoji: 🇵🇹
+colorFrom: blue
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # arquivo-pt-mcp
 
 [![Python Versions](https://img.shields.io/badge/python-3.11%20|%203.12%20|%203.13-blue)]()
