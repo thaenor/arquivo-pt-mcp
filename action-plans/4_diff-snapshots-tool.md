@@ -1,6 +1,6 @@
 # Implementation Plan — `diff_snapshots` Tool
 
-**current status: needs architect review**
+**current status: ready to develop**
 
 **Scope.** ROADMAP.md → Milestone 3 → fourth checkbox only
 (*"Diff tool — new `diff_snapshots` tool comparing two snapshots of
@@ -8,9 +8,9 @@ the same URL and returning a human-readable change summary"*). The
 remaining Milestone 3 items (bulk CDX export, proximity-search docs)
 are covered in their own plans.
 
-**Depends on:** `get_metadata` (`temp/action-plans/get-metadata-tool.md`)
+**Depends on:** `get_metadata` (`action-plans/3_get-metadata-tool.md`)
 ideally landing first — `mode="metadata"` of this tool reuses it. If
-sequencing is inconvenient, see §11 pitfall #6 for a fallback.
+sequencing is inconvenient, see §10 pitfall #6 for a fallback.
 
 **Source of truth for the inputs:** `extract_text` (text mode) and
 `get_metadata` (metadata mode) — both already validated against the
@@ -44,23 +44,29 @@ shape, doubled.
 
 ## 2. Current state (May 2026)
 
-- `extract_text()` in `src/arquivo_pt_mcp/__init__.py:528` is the
-  text source. It already handles snapshot resolution
-  (`get_snapshot`), the server-side `/textextracted` endpoint, the
-  HTML-stripping fallback, the `max_chars` cap, and the
-  short-extraction warning. Reuse, do not reimplement.
-- `get_metadata()` (planned in `get-metadata-tool.md`, not yet
-  shipped at the time this plan is written) is the metadata-mode
-  backend. If it has not landed when this plan is executed, see §11
+- `extract_text()` in `src/arquivo_pt_mcp/__init__.py` (currently
+  around line 561 — locate by name; line numbers have drifted as the
+  codebase grew) is the text source. It already handles snapshot
+  resolution (`get_snapshot`), the server-side `/textextracted`
+  endpoint, the HTML-stripping fallback, the `max_chars` cap, and the
+  short-extraction warning. Reuse, do not reimplement. Its return
+  dict carries `timestamp`, `extraction_method`, `char_count`,
+  `truncated`, `text` (and an optional `warning`); on the not-found
+  path it returns the `get_snapshot` dict verbatim, which has
+  `found=False`. The handler in §5.1.5 relies on both shapes.
+- `get_metadata()` (planned in `3_get-metadata-tool.md`, not yet
+  shipped at the time this plan was written) is the metadata-mode
+  backend. If it has not landed when this plan is executed, see §10
   pitfall #6 for the inline fallback.
-- `get_snapshot()` (`__init__.py:416`) is reused indirectly via
-  `extract_text` / `get_metadata` — `diff_snapshots` does not call
-  it directly.
+- `get_snapshot()` (currently around line 449) is reused indirectly
+  via `extract_text` / `get_metadata` — `diff_snapshots` does not
+  call it directly.
 - No diff dependency exists today. Python's `difflib` (stdlib) is
   sufficient — no new pyproject dependencies. If we later want
   word-level diffs or HTML-aware diffs, that becomes a follow-up
-  (§10).
-- The `call_tool` dispatcher (`__init__.py:839`) already handles
+  (§9).
+- The `call_tool` dispatcher (currently around line 906, signature
+  `-> list[TextContent | ImageContent]`) already handles
   dict-returning tools; this tool returns a plain dict. **No
   dispatcher change.**
 - Module-level caches: text-mode benefits from `SNAPSHOT_CACHE`
@@ -206,7 +212,10 @@ DIFF_CACHE = TTLCache(maxsize=200, ttl=60 * 60)
   the inputs are cheap to recompute; this cache exists to avoid the
   diff CPU itself, which is non-trivial for ~50 KB documents.
 - Metadata-mode entries are tiny; `maxsize=200` is plenty.
-- Add `DIFF_CACHE.clear()` to `clear_cache()` (`__init__.py:70`).
+- Add `DIFF_CACHE.clear()` to `clear_cache()` (currently around
+  line 79). The function already clears `CDX_CACHE`, `SEARCH_CACHE`,
+  `SNAPSHOT_CACHE`, and `SCREENSHOT_CACHE` — append `DIFF_CACHE` to
+  preserve insertion order.
 
 ---
 
@@ -256,8 +265,11 @@ the existing clears).
 
 #### 5.1.4 New helper `_unified_diff_summary`
 
-Place near the other `_*` helpers (around `__init__.py:159`). Pure
-function — no I/O, easy to test in isolation.
+Place near the other `_*` helpers — currently `_screenshot_url` sits
+around line 168 and `_parse_cdx_jsonl` around line 132. Drop this
+helper just below `_screenshot_url` to keep helpers grouped before
+`_fetch_with_retry`. Pure function — no I/O, easy to test in
+isolation.
 
 ```python
 def _unified_diff_summary(
@@ -532,9 +544,17 @@ models — confirm before adding.
 #### 6.1.2 Same-timestamp short-circuit
 
 Patch `extract_text` to fail loudly if called. Call
-`diff_snapshots(url, "2010", "20100101000000")`. Both normalize to
-`20100101000000`. Assert `changed=False`, `note` mentions same
-capture, and `extract_text` was **not** called.
+`diff_snapshots(url, "20100101", "20100101000000")`. Both normalize
+to `"20100101000000"` (verified: `_normalize_date` digits-pads with
+zeros to 14 chars — see `__init__.py:_normalize_date`). Assert
+`changed=False`, `note` mentions same capture, and `extract_text`
+was **not** called.
+
+**Note for the executor:** `_normalize_date("2010")` produces
+`"20100000000000"` (NOT `"20100101000000"`) — bare-year inputs are
+left as `YYYY` followed by zeros, they are *not* coerced to
+January 1. Use `"20100101"` (or `"2010-01-01"`) to test the
+short-circuit, not `"2010"`.
 
 #### 6.1.3 Text mode happy path
 
@@ -719,9 +739,13 @@ RUN_INTEGRATION=1 pytest tests/test_integration.py -v -k diff
    similarity ratios on short documents misleading. Tested
    indirectly by §6.1.1 (identical → 1.0).
 2. **Don't compare snapshots without resolving timestamps first.**
-   `_normalize_date("2010")` and `_normalize_date("20100101000000")`
+   `_normalize_date("20100101")` and `_normalize_date("20100101000000")`
    both produce `"20100101000000"` — they should short-circuit, not
-   fetch twice. Tested by §6.1.2.
+   fetch twice. Tested by §6.1.2. **Heads-up:** `_normalize_date("2010")`
+   produces `"20100000000000"` (zeros, not Jan 1) — inputs that look
+   equivalent to a human are not always equivalent post-normalization.
+   The short-circuit compares the *normalized* values, which is
+   correct; just don't write tests assuming bare years coerce to Jan 1.
 3. **`extract_text`'s `extraction_method` can vary** between the
    server-side `/textextracted` and the regex fallback for the same
    capture across runs (the server may transiently 404). Two text
@@ -744,7 +768,7 @@ RUN_INTEGRATION=1 pytest tests/test_integration.py -v -k diff
    behind a `try/except ImportError`-style runtime check (or temporarily
    raise `NotImplementedError` from `_diff_metadata` with a clear
    message: "metadata mode requires get_metadata, planned in
-   `temp/action-plans/get-metadata-tool.md`"). Do not block this
+   `action-plans/3_get-metadata-tool.md`"). Do not block this
    plan on it — `mode="text"` is independently valuable. Once
    metadata lands, remove the guard.
 7. **`difflib.unified_diff` returns a generator** — `"\n".join(it)`

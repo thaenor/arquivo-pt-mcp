@@ -1,6 +1,6 @@
 # Implementation Plan — Bulk CDX Export
 
-**current status: needs architect review**
+**current status: ready to develop**
 
 **Scope.** ROADMAP.md → Milestone 3 → fifth checkbox only
 (*"Bulk CDX export — pagination via `offset`/`limit` already works,
@@ -13,7 +13,9 @@ plans.
 **Source of truth for limits and parameters:**
 `docs/api-reference.md` §2 (CDX server). The official ceiling is
 **100,000 captures per request** (line 134), against our current
-client-side cap of 500 (`models.py:40`).
+client-side cap of 500 (currently in `src/arquivo_pt_mcp/models.py`
+around line 38 — locate by name `ListVersionsParams.limit`; the
+file evolves and absolute line numbers drift).
 
 ---
 
@@ -41,20 +43,23 @@ breaking change.
 
 ## 2. Current state (May 2026)
 
-- `list_versions()` (`src/arquivo_pt_mcp/__init__.py:335`) already
-  accepts `limit` and `offset`. The Pydantic model at
-  `models.py:40` caps `limit` with `Field(default=50, ge=1, le=500)`
-  — **the only thing standing between us and the API ceiling**.
+- `list_versions()` (currently around `src/arquivo_pt_mcp/__init__.py:358`
+  — locate by name) already accepts `limit` and `offset`. The
+  Pydantic model (currently around `models.py:38` — locate by name
+  `ListVersionsParams`) caps `limit` with `Field(default=50, ge=1,
+  le=500)` — **the only thing standing between us and the API
+  ceiling**.
 - The handler already handles every other CDX param surfaced by the
   upstream (`filter`, `match_type`, `from_date`, `to_date`, `sort`,
   `closest`). No new query-shape work.
 - The non-compact response is currently
-  `{"url": ..., "count": ..., "captures": [...]}` (`__init__.py:413`).
-  The compact response adds `summary` and a `note`. Neither carries
-  pagination metadata.
-- `_parse_cdx_jsonl` (`__init__.py:123`) is happy with arbitrary
-  result counts — no internal cap. The 500-cap is purely a
-  client-side validation choice.
+  `{"url": ..., "count": ..., "captures": [...]}` (final `return`
+  in `list_versions` — currently around `__init__.py:446`). The
+  compact response adds `summary` and a `note` (the dict around
+  lines 434–444). Neither carries pagination metadata.
+- `_parse_cdx_jsonl` (currently around `__init__.py:132`) is happy
+  with arbitrary result counts — no internal cap. The 500-cap is
+  purely a client-side validation choice.
 - `CDX_CACHE` is `TTLCache(maxsize=1000, ttl=15*60)`. A 100K-entry
   capture list is ~10–20 MB of JSON in memory. **At 1000 cached
   responses worst-case, the working set is ~10–20 GB — not
@@ -142,19 +147,18 @@ With pagination metadata, the contract becomes:
 ### 3.4 Cache resizing
 
 `CDX_CACHE = TTLCache(maxsize=1000, ttl=15*60)` is dangerous once
-the limit ceiling is 100K rows per entry. Two options:
+the limit ceiling is 100K rows per entry. Three options considered:
 
 1. **Shrink `maxsize` based on entry size.** Drop to `maxsize=200`,
    which keeps the worst-case bound at ~2–4 GB — still too large.
 2. **Use a size-aware eviction policy.** `cachetools.LRUCache` with
    a custom `getsizeof` could work, but the project's other caches
    are all `TTLCache` and changing one breaks consistency.
+3. **Skip caching for large responses.** Keep `TTLCache` but do not
+   write to `CDX_CACHE` when `len(captures) > 5000`. Large bulk
+   requests are typically one-shot exports, not repeated queries.
 
-**Recommended (option 3):** keep `TTLCache` but **skip caching for
-large responses**. Concretely, do not write to `CDX_CACHE` when
-`returned > 5000`. Rationale: large bulk requests are typically a
-one-shot export, not a repeated query, so a cache miss on the second
-call is fine. Implementation:
+**Recommended: option 3.** Implementation:
 
 ```python
 if returned <= 5000:
@@ -197,7 +201,8 @@ besides the one-character cap change. No changes to `_parse_cdx_jsonl`,
 
 ### 5.1 `src/arquivo_pt_mcp/models.py`
 
-One-line edit at line 40:
+One-line edit inside `ListVersionsParams` (currently at line 38;
+locate by class name to be safe):
 
 ```diff
 -    limit: int = Field(default=50, ge=1, le=500)
@@ -209,9 +214,10 @@ Underscore for readability — Python accepts it as `100000`.
 ### 5.2 `src/arquivo_pt_mcp/__init__.py` — handler
 
 Inside `list_versions()`, **after** the captures list is populated
-(immediately after `__init__.py:390`, where `CDX_CACHE[cache_key] =
-captures` is today), restructure the cache write and assemble
-pagination metadata before the compact/non-compact split:
+(currently this happens around line 419, where the line
+`CDX_CACHE[cache_key] = captures` lives — locate by that exact
+string), restructure the cache write and assemble pagination
+metadata before the compact/non-compact split:
 
 ```python
 # replace the unconditional cache write with a guarded one
