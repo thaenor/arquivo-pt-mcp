@@ -1,6 +1,6 @@
 ---
 title: Arquivo Pt MCP
-emoji: 🇵🇹
+emoji: 📚
 colorFrom: blue
 colorTo: red
 sdk: docker
