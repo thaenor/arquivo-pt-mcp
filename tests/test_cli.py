@@ -18,8 +18,8 @@ def test_parse_argv_defaults_stdio():
     assert args.sse_response is False
     assert args.stateless is True
     assert args.stateful is False
-    assert args.allowed_host is None
-    assert args.allowed_origin is None
+    assert args.allowed_host == []
+    assert args.allowed_origin == []
     assert args.no_dns_rebinding_protection is False
     assert args.log_level == "info"
 

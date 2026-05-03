@@ -18,12 +18,9 @@ HEALTH_PATH = "/healthz"
 logger = logging.getLogger(__name__)
 
 
-def _is_loopback(host: str) -> bool:
-    return host in ("127.0.0.1", "::1", "localhost")
-
-
 def create_app(  # noqa: PLR0913
     *,
+    path: str = "/mcp",
     json_response: bool = True,
     stateless: bool = True,
     allowed_hosts: list[str] | None = None,
@@ -56,14 +53,9 @@ def create_app(  # noqa: PLR0913
 
     async def health(request: Request) -> JSONResponse:  # noqa: ARG001
         """Health-check endpoint returning server status."""
-        try:
-            tool_count = len(server._tool_cache)
-        except Exception:
-            tool_count = 0
         return JSONResponse(
             {
                 "status": "ok",
-                "tools": tool_count,
                 "transport": "streamable-http",
             }
         )
@@ -89,45 +81,10 @@ def create_app(  # noqa: PLR0913
     app = Starlette(
         lifespan=lifespan,
         routes=[
-            Mount(MCP_PATH, app=session_manager.handle_request),
+            Mount(path, app=session_manager.handle_request),
             Route(HEALTH_PATH, health),
         ],
         middleware=middleware,
     )
 
     return app
-
-
-def run_uvicorn(  # noqa: PLR0913
-    *,
-    host: str = "127.0.0.1",
-    port: int = 8000,
-    path: str = "/mcp",
-    json_response: bool = True,
-    stateless: bool = True,
-    allowed_hosts: list[str] | None = None,
-    allowed_origins: list[str] | None = None,
-    enable_dns_rebinding_protection: bool = True,
-    log_level: str = "info",
-) -> None:
-    """Create the ASGI app and run it with uvicorn."""
-    import uvicorn
-
-    app = create_app(
-        json_response=json_response,
-        stateless=stateless,
-        allowed_hosts=allowed_hosts,
-        allowed_origins=allowed_origins,
-        enable_dns_rebinding_protection=enable_dns_rebinding_protection,
-    )
-
-    log_config = uvicorn.config.LOGGING_CONFIG
-    logging.getLogger("arquivo_pt_mcp").setLevel(getattr(logging, log_level.upper()))
-
-    uvicorn.run(
-        app,
-        host=host,
-        port=port,
-        log_level=log_level,
-        log_config=log_config,
-    )

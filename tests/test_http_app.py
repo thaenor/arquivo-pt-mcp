@@ -22,7 +22,6 @@ def test_healthz_returns_ok(client):
     data = response.json()
     assert data["status"] == "ok"
     assert data["transport"] == "streamable-http"
-    assert isinstance(data["tools"], int)
 
 
 def test_mcp_initialize_post(client):

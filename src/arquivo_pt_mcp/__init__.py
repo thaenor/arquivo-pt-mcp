@@ -978,6 +978,7 @@ async def _async_main_http(args: argparse.Namespace) -> None:
     from arquivo_pt_mcp.http_app import create_app  # lazy import
 
     app = create_app(
+        path=args.path,
         json_response=args.json_response,
         stateless=args.stateless,
         allowed_hosts=args.allowed_host,

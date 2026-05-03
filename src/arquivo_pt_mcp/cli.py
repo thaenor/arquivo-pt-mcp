@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 
 
 def _env_bool(name: str) -> bool | None:
@@ -69,40 +68,49 @@ def parse_argv(argv: list[str] | None = None) -> argparse.Namespace:
         help="HTTP route mount path. Env: ARQUIVO_PT_MCP_PATH",
     )
 
-    # Response mode
-    parser.add_argument(
+    # Response mode (mutually exclusive)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
         "--json-response",
-        action="store_true",
-        default=False,
-        help="Use JSON response mode for Streamable HTTP.",
+        dest="response_mode",
+        action="store_const",
+        const="json",
+        help="Use JSON response mode for Streamable HTTP (default).",
     )
-    parser.add_argument(
+    mode.add_argument(
         "--sse-response",
-        action="store_true",
-        default=False,
+        dest="response_mode",
+        action="store_const",
+        const="sse",
         help="Use SSE response mode for Streamable HTTP.",
     )
+    parser.set_defaults(response_mode="json")
 
-    # Stateful / Stateless
+    # Stateful / Stateless (mutually exclusive)
     stateful_env = _env_bool("ARQUIVO_PT_MCP_STATEFUL")
-    parser.add_argument(
+    default_session = "stateful" if stateful_env else "stateless"
+    session = parser.add_mutually_exclusive_group()
+    session.add_argument(
         "--stateful",
-        action="store_true",
-        default=stateful_env if stateful_env is not None else False,
+        dest="session_mode",
+        action="store_const",
+        const="stateful",
         help="Enable stateful sessions. Env: ARQUIVO_PT_MCP_STATEFUL",
     )
-    parser.add_argument(
+    session.add_argument(
         "--stateless",
-        action="store_true",
-        default=True,
+        dest="session_mode",
+        action="store_const",
+        const="stateless",
         help="Enable stateless sessions (default).",
     )
+    parser.set_defaults(session_mode=default_session)
 
     # Security
     parser.add_argument(
         "--allowed-host",
         action="append",
-        default=_env_list("ARQUIVO_PT_MCP_ALLOWED_HOSTS"),
+        default=None,
         help=(
             "Allowed host for DNS rebinding protection (repeatable). "
             "Env: ARQUIVO_PT_MCP_ALLOWED_HOSTS"
@@ -111,7 +119,7 @@ def parse_argv(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--allowed-origin",
         action="append",
-        default=_env_list("ARQUIVO_PT_MCP_ALLOWED_ORIGINS"),
+        default=None,
         help="Allowed CORS origin (repeatable). Env: ARQUIVO_PT_MCP_ALLOWED_ORIGINS",
     )
     parser.add_argument(
@@ -131,25 +139,25 @@ def parse_argv(argv: list[str] | None = None) -> argparse.Namespace:
 
     args = parser.parse_args(argv)
 
-    # Resolve response mode: --sse-response takes precedence over default json
-    if args.sse_response:
-        args.json_response = False
-    elif not args.json_response:
-        # Default to JSON when neither flag is passed
-        args.json_response = True
+    # Compute boolean flags from mutually exclusive groups
+    args.json_response = args.response_mode == "json"
+    args.sse_response = args.response_mode == "sse"
+    args.stateless = args.session_mode == "stateless"
+    args.stateful = args.session_mode == "stateful"
 
-    # Resolve stateful/stateless: --stateful overrides default stateless
-    if args.stateful:
-        args.stateless = False
+    # List-arg env precedence: CLI overrides env var (consistent with scalars)
+    if args.allowed_host is None:
+        args.allowed_host = _env_list("ARQUIVO_PT_MCP_ALLOWED_HOSTS") or []
+    if args.allowed_origin is None:
+        args.allowed_origin = _env_list("ARQUIVO_PT_MCP_ALLOWED_ORIGINS") or []
 
     # DNS rebinding guard
     if args.transport == "http":
         host = args.host
-        allowed_hosts = args.allowed_host or []
         if (
             host
             and not _is_loopback(host)
-            and not allowed_hosts
+            and not args.allowed_host
             and not args.no_dns_rebinding_protection
         ):
             parser.error(
@@ -159,34 +167,3 @@ def parse_argv(argv: list[str] | None = None) -> argparse.Namespace:
             )
 
     return args
-
-
-def main() -> None:
-    """Synchronous entry point used by the console script."""
-    args = parse_argv()
-    if args.transport == "stdio":
-        from arquivo_pt_mcp import main as stdio_main
-
-        stdio_main()
-    elif args.transport == "http":
-        from arquivo_pt_mcp.http_app import run_uvicorn
-
-        run_uvicorn(
-            host=args.host,
-            port=args.port,
-            path=args.path,
-            json_response=args.json_response,
-            stateless=args.stateless,
-            allowed_hosts=args.allowed_host or None,
-            allowed_origins=args.allowed_origin or None,
-            enable_dns_rebinding_protection=not args.no_dns_rebinding_protection,
-            log_level=args.log_level,
-        )
-    else:
-        # Should never happen because choices restrict the value
-        print(f"unknown transport: {args.transport}", file=sys.stderr)
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
