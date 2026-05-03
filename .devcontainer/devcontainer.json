@@ -4,7 +4,7 @@
 
   "forwardPorts": [7860],
 
-  "postCreateCommand": "pip install -e arquivo-pt-mcp/[dev]",
+  "postCreateCommand": "pip install -e '.[dev]'",
 
   "customizations": {
     "vscode": {
@@ -15,7 +15,6 @@
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "python.testing.pytestEnabled": true,
-        "python.testing.cwd": "arquivo-pt-mcp",
         "[python]": {
           "editor.formatOnSave": true,
           "editor.defaultFormatter": "charliermarsh.ruff"
