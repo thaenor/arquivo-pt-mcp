@@ -71,6 +71,11 @@ def test_list_versions_params_missing_url():
         ListVersionsParams()
 
 
+def test_list_versions_params_compact_default():
+    p = ListVersionsParams(url="publico.pt")
+    assert p.compact is False
+
+
 def test_get_snapshot_params_valid():
     p = GetSnapshotParams(url="publico.pt")
     assert p.url == "publico.pt"

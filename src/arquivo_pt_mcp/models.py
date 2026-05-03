@@ -24,6 +24,7 @@ class ListVersionsParams(BaseModel):
     url: str
     limit: int = Field(default=50, ge=1, le=500)
     offset: int = Field(default=0, ge=0)
+    compact: bool = False
 
 
 class GetSnapshotParams(BaseModel):

@@ -48,6 +48,7 @@ TEXTSEARCH = f"{ARQUIVO_BASE}/textsearch"
 IMAGESEARCH = f"{ARQUIVO_BASE}/imagesearch"
 CDX = f"{ARQUIVO_BASE}/wayback/cdx"
 WAYBACK = f"{ARQUIVO_BASE}/wayback"
+TEXTRACTED = f"{ARQUIVO_BASE}/textextracted"
 
 USER_AGENT = "arquivo-pt-mcp/0.1.0 (https://github.com/thaenor/arquivo-pt-mcp)"
 DEFAULT_TIMEOUT = 30.0
@@ -274,23 +275,45 @@ async def image_search(
     return result
 
 
-async def list_versions(url: str, limit: int = 50, offset: int = 0) -> dict[str, Any]:
+async def list_versions(
+    url: str, limit: int = 50, offset: int = 0, compact: bool = False
+) -> dict[str, Any]:
     """List every archived capture of a URL via the CDX server."""
     cache_key = (url, limit, offset)
     if cache_key in CDX_CACHE:
-        return CDX_CACHE[cache_key]
+        captures = CDX_CACHE[cache_key]
+    else:
+        params = {"url": url, "output": "json", "limit": limit}
+        if offset > 0:
+            params["offset"] = offset
+        async with _client() as client:
+            resp = await _fetch_with_retry(client, CDX, params=params)
+            text = resp.text.strip()
+        captures = _parse_cdx_jsonl(text)
+        CDX_CACHE[cache_key] = captures
 
-    params = {"url": url, "output": "json", "limit": limit}
-    if offset > 0:
-        params["offset"] = offset
-    async with _client() as client:
-        resp = await _fetch_with_retry(client, CDX, params=params)
-        text = resp.text.strip()
+    if compact:
+        by_year: dict[str, int] = {}
+        for c in captures:
+            year = c["timestamp"][:4] if c.get("timestamp") else "unknown"
+            by_year[year] = by_year.get(year, 0) + 1
+        compact_captures = [
+            {"timestamp": c["timestamp"], "original": c["original"], "archive_url": c["archive_url"]}
+            for c in captures
+        ]
+        return {
+            "url": url,
+            "total_captures": len(captures),
+            "summary": dict(sorted(by_year.items())),
+            "recent_captures": compact_captures,
+            "note": (
+                f"Showing {len(captures)} captures in compact form. "
+                "Set compact=false for full CDX metadata (mime, status, digest, length). "
+                "Use offset parameter to paginate through older captures."
+            ),
+        }
 
-    captures = _parse_cdx_jsonl(text)
-    result = {"url": url, "count": len(captures), "captures": captures}
-    CDX_CACHE[cache_key] = result
-    return result
+    return {"url": url, "count": len(captures), "captures": captures}
 
 
 async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]:
@@ -343,28 +366,50 @@ async def extract_text(
     if not snap.get("found"):
         return snap
 
-    raw_archive_url = snap.get("no_frame_url") or snap["archive_url"]
-    cache_key = (raw_archive_url, max_chars)
+    ts = snap.get("timestamp", "")
+    cache_key = (snap["archive_url"], max_chars)
     if cache_key in SNAPSHOT_CACHE:
         return SNAPSHOT_CACHE[cache_key]
 
-    async with _client() as client:
-        resp = await client.get(raw_archive_url)
-        if resp.status_code == 404 and snap.get("no_frame_url"):
-            resp = await client.get(snap["archive_url"])
-        resp.raise_for_status()
-        html = resp.text
+    text = ""
+    extraction_method = "server"
 
-    text = _strip_html(html)
+    async with _client() as client:
+        try:
+            resp = await _fetch_with_retry(client, TEXTRACTED, params={"m": f"{url}/{ts}"})
+            text = resp.text.strip()
+        except (httpx.HTTPStatusError, httpx.TimeoutException):
+            pass
+
+    if not text:
+        extraction_method = "regex"
+        async with _client() as client:
+            raw_archive_url = snap.get("no_frame_url") or snap["archive_url"]
+            resp = await client.get(raw_archive_url)
+            if resp.status_code == 404 and snap.get("no_frame_url"):
+                resp = await client.get(snap["archive_url"])
+            resp.raise_for_status()
+            text = _strip_html(resp.text)
+
     truncated = len(text) > max_chars
     result = {
         "url": url,
-        "timestamp": snap.get("timestamp"),
+        "timestamp": ts,
         "archive_url": snap.get("archive_url"),
+        "extraction_method": extraction_method,
         "char_count": len(text),
         "truncated": truncated,
         "text": text[:max_chars],
     }
+
+    if len(text) < 100:
+        result["warning"] = (
+            f"Only {len(text)} characters extracted. Early Portuguese web pages were often "
+            "image/table-based and yield little extractable text. "
+            "Try a different timestamp when the page may have had more text content, "
+            "or use get_snapshot + WebFetch to inspect the page visually."
+        )
+
     SNAPSHOT_CACHE[cache_key] = result
     return result
 
@@ -449,6 +494,11 @@ async def list_tools() -> list[Tool]:
                         "default": 0,
                         "minimum": 0,
                         "description": "Pagination offset for CDX results (skip first N captures)",
+                    },
+                    "compact": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Return year-bucketed summary instead of full CDX records. Reduces output size for URLs with many captures.",
                     },
                 },
                 "required": ["url"],

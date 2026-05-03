@@ -37,11 +37,11 @@ Focus: make the server production-ready for heavy, unattended use.
 
 Focus: expose more of the Arquivo.pt API surface to the model.
 
-- [ ] **Advanced domain / collection search** — filter `search` and `list_versions` by top-level domain, collection, or MIME type
-- [ ] **Metadata tool** — new `get_metadata` tool returning HTTP status code, content type, redirect chain, and language for a given snapshot
+- [ ] **Advanced domain / collection search** — expose `collection` and `type` params in `search`; expose `filter`, `matchType`, `from`/`to` date range, and `sort` in `list_versions`
+- [ ] **Metadata tool** — new `get_metadata` tool returning HTTP status code, MIME type, content length, and digest for a given snapshot (redirect chain and language are not available from the Arquivo.pt API)
 - [ ] **Diff tool** — new `diff_snapshots` tool comparing two snapshots of the same URL and returning a human-readable change summary
-- [ ] **Bulk CDX export** — allow `list_versions` to page through large capture histories without truncation
-- [ ] **Proximity / phrase search** — pass advanced query operators through to `textsearch` when the Arquivo.pt API supports them
+- [ ] **Bulk CDX export** — pagination via `offset`/`limit` already works, but max limit is capped at 500 (API supports 100,000) and the response lacks pagination metadata (total count, next-page indicator)
+- [ ] **Proximity / phrase search** — phrase quotes and `-exclusion` already pass through to the API correctly, but they are undocumented in the tool descriptions and `inputSchema` (the API does not support `NEAR`, boolean operators, or wildcards)
 
 ---
 

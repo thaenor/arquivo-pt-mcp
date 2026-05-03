@@ -70,3 +70,43 @@ async def test_list_versions_offset(mock_cdx_jsonl_response):
     passed_params = mock_fetch.call_args.kwargs["params"]
     assert passed_params["offset"] == 10
     assert passed_params["limit"] == 10
+
+
+@pytest.mark.asyncio
+async def test_list_versions_compact_mode(mock_cdx_jsonl_response):
+    """Compact mode returns year summary + reduced capture fields, not raw CDX metadata."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
+        result = await list_versions("publico.pt", compact=True)
+
+    assert "summary" in result
+    assert result["summary"]["2005"] == 1
+    assert result["summary"]["2006"] == 1
+    assert "recent_captures" in result
+    assert "note" in result
+    assert "captures" not in result
+    cap = result["recent_captures"][0]
+    assert "mime" not in cap
+    assert "digest" not in cap
+    assert "status" not in cap
+    assert "length" not in cap
+    assert cap["timestamp"] == "20050315120000"
+    assert cap["archive_url"].startswith("https://arquivo.pt/wayback/")
+
+
+@pytest.mark.asyncio
+async def test_list_versions_compact_false_is_current_behavior(mock_cdx_jsonl_response):
+    """Explicit compact=False (the default) must return the same shape as today."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
+        result = await list_versions("publico.pt", compact=False)
+
+    assert result["url"] == "publico.pt"
+    assert result["count"] == 2
+    assert "captures" in result
+    assert result["captures"][0]["mime"] == "text/html"
+    assert result["captures"][0]["digest"] == "SHA1ABCDEF"
