@@ -10,8 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: huggingface/huggingface-spaces-deploy-action@v1
         with:
-          hf_token: ${{ secrets.HF_TOKEN }}
-          space_name: decaf-squirrel/arquivo-pt-mcp
-          repo_dir: .
+          fetch-depth: 0
+          lfs: true
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git push --force \
+            "https://user:${HF_TOKEN}@huggingface.co/spaces/decaf-squirrel/arquivo-pt-mcp" \
+            HEAD:main

@@ -4,9 +4,25 @@ MCP server for [Arquivo.pt](https://arquivo.pt), the Portuguese Web Archive. Exp
 
 ## Workflow
 
-This Claude session is expected to run **inside the project's DevContainer**. To start a session: VSCode → Reopen in Container → open a terminal → `claude`. All `Bash` calls then execute natively in the container — no `docker exec`, no path translation.
+This Claude session is expected to run **inside the project's DevContainer**.
 
-**Git and `gh` are the user's responsibility — never run them.** All `git` commands (status, diff, log, add, commit, push, branch, rebase, tag, etc.) and all `gh` commands (PR/issue/run/workflow ops, both read and write) must be described and handed to the user to run on their host. The container has no GitHub auth and likely no `gh` installed; even read-only calls would fail or behave inconsistently. Same goes for anything else that needs host-side credentials (SSH agent, signing keys). Describe the command, explain why, let the user run it.
+container:
+id: 5f6c44112660
+name: pensive_moser
+image: mcr.microsoft.com/devcontainers/python:3.12
+
+What do run inside the Docker Container:
+
+- Python commands
+- tests
+- anything tightly couple with the code
+
+What to run on bare metal (Macbook)
+- git and gh (already authenticated)
+- hf (hugging face) (already authenticated)
+- related curl commands to troubleshoot issues with git or huggingFace
+
+When in doubt, pause the process and confirm with the user. Never install any dependencies on the bare metal machine.
 
 ## Commands
 
