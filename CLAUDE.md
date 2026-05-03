@@ -1,175 +1,74 @@
 # CLAUDE.md
 
-This file describes how Claude (or other MCP-capable agents) should work with the **`arquivo-pt-mcp`** repository.
+MCP server for [Arquivo.pt](https://arquivo.pt), the Portuguese Web Archive. Exposes 6 tools: `search`, `image_search`, `list_versions`, `get_snapshot`, `extract_text`, `get_screenshot`.
 
----
+## Workflow
 
-## High-level behavior
+This Claude session is expected to run **inside the project's DevContainer**. To start a session: VSCode → Reopen in Container → open a terminal → `claude`. All `Bash` calls then execute natively in the container — no `docker exec`, no path translation.
 
-- Treat this project as a **Model Context Protocol server** for **[Arquivo.pt](https://arquivo.pt)**, the Portuguese Web Archive.[cite:3]
-- Prefer using the existing MCP tools (`search`, `image_search`, `list_versions`, `get_snapshot`, `extract_text`, `get_screenshot`) instead of re-implementing HTTP calls to Arquivo.pt.
-- When a user wants to query archived Portuguese web content, route those tasks through this MCP server rather than calling the Arquivo.pt API directly.[cite:3]
+**Git and `gh` are the user's responsibility — never run them.** All `git` commands (status, diff, log, add, commit, push, branch, rebase, tag, etc.) and all `gh` commands (PR/issue/run/workflow ops, both read and write) must be described and handed to the user to run on their host. The container has no GitHub auth and likely no `gh` installed; even read-only calls would fail or behave inconsistently. Same goes for anything else that needs host-side credentials (SSH agent, signing keys). Describe the command, explain why, let the user run it.
 
----
+## Commands
 
-## Dev environment & containers
+- Install dev deps: `uv sync --extra dev` (or `pip install -e ".[dev]"`)
+- Lint / format: `ruff check src tests` · `ruff format src tests`
+- Tests: `pytest -q` · single file: `pytest tests/test_search.py -q` · single test: `pytest tests/test_search.py::test_search_basic -q`
+- Coverage: `pytest --cov=arquivo_pt_mcp`
+- Integration (live API, opt-in): `RUN_INTEGRATION=1 pytest -m integration -v`
+- Run server (stdio): `uv run arquivo-pt-mcp`
+- Run server (HTTP): `arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000`
+- Build wheel: `python -m build`
 
-- There is a **VSCode Dev Container** configured for this project. When running shell commands that modify code, dependencies, or run tests, assume they should be executed **inside the dev container**.
-- Only **Git operations** (e.g. `git status`, `git commit`, `git push`, `git rebase`) should be run on the **host macOS machine**, not inside the container (unless the user explicitly says otherwise).
-- When giving instructions, make this workflow explicit, for example:
-  - "Open the repository in VSCode and `Reopen in Container`."
-  - "Then run `uv sync --extra dev` inside the container."
-  - "Run `git status` on the host terminal before committing."
+`pytest.ini_options` sets `asyncio_mode = "auto"` — async tests don't need `@pytest.mark.asyncio`. The `integration` marker is registered; tests without `RUN_INTEGRATION=1` skip via `tests/integration_fixtures.py`.
 
-If you need to describe how to get a shell inside the running dev container, use wording like:
+## Architecture
 
-```bash
-# On the host (macOS), from the repo root
-# VSCode will usually handle this automatically, but conceptually:
-# 1. Start the Dev Container via VSCode
-# 2. Open a terminal that is attached to the container
+### Single-module core, thin wrappers
 
-# Once you are inside the container shell, run project commands there
-uv sync --extra dev
-pytest -q
-```
+`src/arquivo_pt_mcp/__init__.py` is the whole server: tool implementations, MCP wiring (`@server.list_tools`, `@server.call_tool`), HTTP helpers, and the `main()` entry point all live there. The other source files are deliberately thin:
 
-Do **not** suggest running Docker or `docker exec` manually unless the user explicitly wants low-level container operations; VSCode normally manages the Dev Container lifecycle.
+- `server.py` — re-exports `main` for `python -m arquivo_pt_mcp.server`-style use. Don't add logic here.
+- `cli.py` — argparse + env-var fallbacks for transport/host/port/security flags. Pure parsing; no I/O.
+- `http_app.py` — Starlette ASGI factory used only when `--transport http`. Lazy-imported from `__init__._async_main_http` to avoid pulling Starlette/uvicorn into stdio runs.
+- `models.py` — Pydantic `*Params` models. Validation runs in `call_tool` *before* dispatch via the `PARAM_MODELS` map; tool handlers themselves accept loose kwargs.
 
----
+When changing a tool's signature, update **three** places: the handler in `__init__.py`, the `Tool(...)` schema in `list_tools()`, and the corresponding model in `models.py`.
 
-## Key commands (inside container)
+### Two transports, one Server instance
 
-Unless the user has a different preference, assume that all the following commands are executed **inside the dev container shell**:
+The module-level `server = Server("arquivo-pt")` is shared. `_async_main_stdio` runs `stdio_server()`; `_async_main_http` builds a Starlette app via `create_app()` that mounts `StreamableHTTPSessionManager` at `/mcp` and a `/healthz` route. **In-memory caches are shared across all HTTP clients** — keep this in mind when reasoning about isolation.
 
-- Install dependencies for development:
+### Caching
 
-  ```bash
-  uv sync --extra dev
-  ```
+Four module-level `TTLCache`s in `__init__.py`:
 
-- Run tests:
+- `SEARCH_CACHE` — both `search` and `image_search` (15 min, max 1000)
+- `CDX_CACHE` — `list_versions` and the `get_snapshot` "latest capture" lookup (15 min, max 1000)
+- `SNAPSHOT_CACHE` — `extract_text` results (60 min, max 1000)
+- `SCREENSHOT_CACHE` — `get_screenshot` inline PNG bytes (60 min, max 200)
 
-  ```bash
-  pytest -q
-  pytest --cov=arquivo_pt_mcp
-  ```
+Cache keys are tuples of every parameter that affects output (including `max_chars`, `max_bytes`, sorted `more`/`filter` lists). The autouse `_clear_caches` fixture in `tests/conftest.py` resets all of them between tests; `clear_cache()` is available for manual use.
 
-- Run integration tests against the live Arquivo.pt API (only when requested):
+### Retry & error model
 
-  ```bash
-  RUN_INTEGRATION=1 pytest -m integration -v
-  ```
+`_fetch_with_retry` retries up to `MAX_RETRIES = 5` with `2**attempt` backoff, but **only** on timeouts, 429, and 5xx. Other 4xx errors raise immediately — don't paper over them. The `call_tool` dispatcher catches `HTTPStatusError` / `TimeoutException` / generic `Exception` and converts to `TextContent` error responses; tool handlers should let exceptions propagate rather than catching locally.
 
-- Lint and format:
+### Date handling
 
-  ```bash
-  ruff check src tests
-  ruff format src tests
-  ```
+All date-like params flow through `_normalize_date()`, which accepts `YYYY`, `YYYY-MM`, `YYYY-MM-DD`, or `YYYYMMDDHHMMSS` and pads to a 14-char Wayback timestamp. Use it on any new date param rather than reimplementing parsing.
 
-These commands reflect the project configuration in `pyproject.toml` and `README.md`.[cite:3][cite:9]
+### Inline images (get_screenshot)
 
----
+`get_screenshot(inline=True)` returns a `(meta, png_bytes, mime)` triple instead of a dict. The dispatcher in `call_tool` detects the 3-tuple shape and emits both `TextContent` and `ImageContent`. If you add another tool that returns binary content, follow the same shape — don't add a new branch in the dispatcher unless the tuple contract no longer fits.
 
-## Host-only operations (macOS)
+### Test fixture fidelity
 
-On the **host machine**, outside of the container:
+Mocks in `tests/conftest.py` are shaped to match real Arquivo.pt responses (verified 2026-05-02). The CDX response uses **JSON-Lines** (one object per line), not a JSON array — `_parse_cdx_jsonl` reflects that. If you update fixtures, keep them faithful to the wire format or unit tests stop catching real regressions.
 
-- Run all **Git** commands:
+## CI / release
 
-  ```bash
-  git status
-  git diff
-  git add ...
-  git commit -m "..."
-  git push
-  ```
+- `.github/workflows/ci.yml` — lint + test matrix (3.11/3.12/3.13) + import-validation on every push/PR. Integration job runs only on schedule (06:37 UTC daily) or `workflow_dispatch`; never blocks PRs.
+- `.github/workflows/publish.yml` — tag `v*.*.*` triggers PyPI publish (trusted publisher, no token) and a GitHub Release.
+- `.github/workflows/huggingface.yml` — same tag triggers HF Spaces deploy (Dockerfile-based, port 7860). The Dockerfile pins `ARQUIVO_PT_MCP_ALLOWED_HOSTS` to the HF Space hostname — update it if the Space is renamed.
 
-- Manage branches, tags, and GitHub-related operations (e.g. `gh pr create`, `gh pr checkout`) using the host environment, unless the user explicitly says they prefer doing this from inside the container.
-
-When providing step-by-step instructions, always keep this separation clear: **code and tooling inside the container, git on the host**.
-
----
-
-## CLI tools and skills
-
-This project is intended to be used from LLM agents with **MCP support**, as well as locally from the command line.[cite:3]
-
-When suggesting tooling for local workflows:
-
-- Prefer **`uv`** as the Python package manager and runner, as used in the README:
-
-  ```bash
-  uv run arquivo-pt-mcp
-  uv add arquivo-pt-mcp
-  ```
-
-- Ensure the following CLIs are available in examples and instructions when appropriate:
-  - **`hf`** — Hugging Face CLI (for integration with Hugging Face Spaces or models).
-  - **`gh`** — GitHub CLI (for managing releases, PRs, workflows).
-
-If a user asks how to set these up, you can suggest (on macOS Homebrew-based systems):
-
-```bash
-brew install gh
-pip install --upgrade "huggingface_hub[cli]"
-```
-
-Do not assume these tools are installed inside the dev container unless the Docker/DevContainer config explicitly indicates so; when needed, include installation steps in the container as well.
-
----
-
-## Project structure notes
-
-Useful files and directories for Claude to know about:
-
-- `src/arquivo_pt_mcp/__init__.py` — main MCP server implementation and tool definitions.[cite:8]
-- `src/arquivo_pt_mcp/cli.py` — CLI entry point used by `arquivo-pt-mcp` console script.[cite:8][cite:9]
-- `src/arquivo_pt_mcp/http_app.py` — HTTP server implementation for `--transport http` mode.[cite:6][cite:8]
-- `src/arquivo_pt_mcp/models.py` — Pydantic models and validation for inputs/outputs.[cite:8][cite:9]
-- `src/arquivo_pt_mcp/server.py` — MCP server wiring / startup helpers.[cite:8]
-- `tests/` — unit and integration tests.[cite:2][cite:9]
-- `.github/workflows/ci.yml` — CI pipeline for tests, linting, and integration tests.[cite:5]
-- `.github/workflows/publish.yml` — publishing to PyPI.
-- `.github/workflows/huggingface.yml` — workflow(s) related to Hugging Face deployments or spaces.[cite:5]
-- `Dockerfile` — container image that runs `arquivo-pt-mcp` in HTTP mode, currently used for hosting (e.g. on Hugging Face Spaces).[cite:6]
-
-When editing code, prefer small, focused changes, and add or update tests in `tests/` accordingly.
-
----
-
-## Running the MCP server
-
-Inside the container (or any Python environment with the project installed):
-
-- Local MCP CLI mode (used by Claude Desktop / Cursor when configured with `command`):
-
-  ```bash
-  uv run arquivo-pt-mcp
-  ```
-
-- HTTP transport mode (for remote / streamable setups):
-
-  ```bash
-  arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
-  ```
-
-These are the same commands described in `README.md`; prefer to reference them instead of inventing new ones.[cite:3]
-
----
-
-## How Claude should use this server
-
-When a user question involves **Portuguese web history** or content that likely exists in Arquivo.pt, Claude should:
-
-1. Prefer using the MCP tools provided by this server.
-2. Choose the most appropriate tool based on the task:
-   - `search` / `image_search` for broad queries.
-   - `list_versions` when the user cares about how a URL changes over time.
-   - `get_snapshot` when the user wants a specific timestamp.
-   - `extract_text` when the user wants readable content without HTML noise.
-   - `get_screenshot` when the visual layout of the page matters.
-3. Be explicit about any limitations of the underlying Arquivo.pt APIs (e.g. rate limits, intermittent network issues) and gracefully handle errors as described in the tests and README.[cite:3][cite:9]
-
-Claude should avoid scraping arbitrary websites directly when the same content is available via Arquivo.pt, particularly for historical snapshots, and should respect the semantics of the provided tools.
+US-based GitHub runners sometimes can't reach `arquivo.pt` (Portugal) reliably — occasional integration failures with `httpx.ConnectError` / `ConnectTimeout` are environmental, not regressions.

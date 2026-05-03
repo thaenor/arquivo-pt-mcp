@@ -1,0 +1,26 @@
+{
+  "name": "Arquivo.pt MCP",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+
+  "forwardPorts": [7860],
+
+  "postCreateCommand": "pip install -e arquivo-pt-mcp/[dev]",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "charliermarsh.ruff"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.cwd": "arquivo-pt-mcp",
+        "[python]": {
+          "editor.formatOnSave": true,
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        }
+      }
+    }
+  }
+}
