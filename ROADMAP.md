@@ -63,6 +63,7 @@ Focus: make the server trivial to install and use across all major MCP clients.
 - [ ] **Docker image** — `ghcr.io/thaenor/arquivo-pt-mcp:latest` for environments without Python
 - [ ] **`npx`-style zero-install** — investigate `uvx arquivo-pt-mcp` as the recommended single-command setup
 - [ ] **Smithery / MCP Hub listing** — submit to the community MCP server registries for discoverability
+- [x] **Streamable HTTP transport** — `arquivo-pt-mcp --transport http` exposes the same tools over a long-running ASGI process. Supports both JSON and SSE response modes, with DNS-rebinding protection and CORS. See `action-plans/streamable-http-transport.md`.
 - [ ] **GitHub release automation** — tag-triggered PyPI publish via Trusted Publisher (OIDC)
 
 ---

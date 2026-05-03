@@ -72,6 +72,30 @@ No Cursor, vá a **Settings → MCP**, adicione um novo servidor e defina:
 
 Consulte a [documentação do MCP](https://modelcontextprotocol.io/quickstart) do seu editor. Em qualquer cliente MCP, basta apontar o comando para o pacote `arquivo-pt-mcp`.
 
+#### Modo Remoto (HTTP Streamable)
+
+O servidor pode também correr como um processo HTTP de longa duração, útil para implantações auto-hospedadas ou clientes que preferem URLs em vez de comandos locais.
+
+```bash
+arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+```
+
+**Claude Desktop / Cursor (via HTTP):**
+
+```json
+{
+  "mcpServers": {
+    "arquivo-pt": {
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  }
+}
+```
+
+Por predefinição liga-se a `127.0.0.1:8000`. Para expor publicamente, coloque-o atrás de um proxy inverso (Caddy, nginx, Traefik) e passe `--allowed-host <hostname>`.
+
+Nota: em modo HTTP as caches em memória são partilhadas entre todos os clientes ligados.
+
 ### Exemplos de utilização
 
 Uma vez configurado, pode pedir ao Claude coisas como:
@@ -221,6 +245,30 @@ In Cursor, go to **Settings → MCP**, add a new server, and set:
 #### Zed, Cline, and others
 
 Refer to your editor's [MCP documentation](https://modelcontextprotocol.io/quickstart). In any MCP client, simply point the command at the `arquivo-pt-mcp` package.
+
+#### Remote mode (Streamable HTTP)
+
+The server can also run as a long-lived HTTP process, useful for self-hosted deployments or clients that prefer URLs over local commands.
+
+```bash
+arquivo-pt-mcp --transport http --host 127.0.0.1 --port 8000
+```
+
+**Claude Desktop / Cursor (via HTTP):**
+
+```json
+{
+  "mcpServers": {
+    "arquivo-pt": {
+      "url": "http://127.0.0.1:8000/mcp"
+    }
+  }
+}
+```
+
+Defaults to binding `127.0.0.1:8000`. To expose publicly, put it behind a TLS-terminating reverse proxy (Caddy, nginx, Traefik) and pass `--allowed-host <hostname>`.
+
+Note: in HTTP mode the in-memory caches are shared across all connected clients.
 
 ### Usage examples
 

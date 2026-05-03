@@ -18,10 +18,13 @@ Endpoints used:
   https://arquivo.pt/wayback/{timestamp}/{url}  (Memento/Wayback)
 
 API docs: docs/api-reference.md
+
+Supports both stdio and streamable HTTP transports.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import base64
 import json
@@ -951,12 +954,44 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent | 
 
 def main() -> None:
     """Synchronous entry point for the console script."""
-    asyncio.run(_async_main())
+    from arquivo_pt_mcp.cli import parse_argv  # lazy to avoid circular imports
+
+    args = parse_argv()
+    if args.transport == "stdio":
+        asyncio.run(_async_main_stdio())
+    else:
+        asyncio.run(_async_main_http(args))
 
 
-async def _async_main() -> None:
+async def _async_main_stdio() -> None:
     async with stdio_server() as (read, write):
         await server.run(read, write, server.create_initialization_options())
+
+
+# deprecated thin alias for backward compatibility
+_async_main = _async_main_stdio
+
+
+async def _async_main_http(args: argparse.Namespace) -> None:
+    import uvicorn
+
+    from arquivo_pt_mcp.http_app import create_app  # lazy import
+
+    app = create_app(
+        json_response=args.json_response,
+        stateless=args.stateless,
+        allowed_hosts=args.allowed_host,
+        allowed_origins=args.allowed_origin,
+        enable_dns_rebinding_protection=not args.no_dns_rebinding_protection,
+    )
+    config = uvicorn.Config(
+        app,
+        host=args.host,
+        port=args.port,
+        log_level=args.log_level,
+        access_log=False,
+    )
+    await uvicorn.Server(config).serve()
 
 
 if __name__ == "__main__":
