@@ -1,0 +1,8 @@
+  {
+    "mcpServers": {
+      "arquivo-pt": {
+        "type": "http",
+        "url": "https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp"
+      }
+    }
+  }
