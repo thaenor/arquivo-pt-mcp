@@ -109,3 +109,103 @@ async def test_list_versions_compact_false_is_current_behavior(mock_cdx_jsonl_re
     assert "captures" in result
     assert result["captures"][0]["mime"] == "text/html"
     assert result["captures"][0]["digest"] == "SHA1ABCDEF"
+
+
+@pytest.mark.asyncio
+async def test_list_versions_preserves_urlkey_and_collection(mock_cdx_jsonl_response):
+    """urlkey and collection fields are preserved for matchType=domain disambiguation."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch("arquivo_pt_mcp._fetch_with_retry", new=AsyncMock(return_value=mock_resp)):
+        result = await list_versions("publico.pt")
+
+    assert result["captures"][0]["urlkey"] == "pt,publico)/"
+    assert result["captures"][0]["collection"] == "Roteiro"
+
+
+@pytest.mark.asyncio
+async def test_list_versions_with_filter_repeated_tuples(mock_cdx_jsonl_response):
+    """Multiple filter values become repeated tuples in params."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        await list_versions("publico.pt", filter=["=status:200", "=mime:text/html"])
+
+    params = mock_fetch.call_args.kwargs.get("params", {})
+    filter_params = [v for k, v in params if k == "filter"]
+    assert filter_params == ["=status:200", "=mime:text/html"]
+
+
+@pytest.mark.asyncio
+async def test_list_versions_match_type_passed_through(mock_cdx_jsonl_response):
+    """match_type=domain is passed to the CDX server."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        await list_versions("publico.pt", match_type="domain")
+
+    params = mock_fetch.call_args.kwargs.get("params", {})
+    passed = dict(params) if not isinstance(params, dict) else params
+    assert passed.get("matchType") == "domain"
+
+
+@pytest.mark.asyncio
+async def test_list_versions_closest_triggers_sort(mock_cdx_jsonl_response):
+    """closest=... triggers sort=closest in the API params."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        await list_versions("publico.pt", sort="closest", closest="20050315120000")
+
+    params = mock_fetch.call_args.kwargs.get("params", {})
+    passed = dict(params) if not isinstance(params, dict) else params
+    assert passed.get("sort") == "closest"
+    assert passed.get("closest") == "20050315120000"
+
+
+@pytest.mark.asyncio
+async def test_list_versions_from_to_dates(mock_cdx_jsonl_response):
+    """from_date and to_date are normalized and passed to CDX."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        await list_versions("publico.pt", from_date="2005", to_date="2006")
+
+    params = mock_fetch.call_args.kwargs.get("params", {})
+    passed = dict(params) if not isinstance(params, dict) else params
+    assert passed.get("from") == "20050000000000"
+    assert passed.get("to") == "20060000000000"
+
+
+@pytest.mark.asyncio
+async def test_list_versions_match_type_exact_not_sent(mock_cdx_jsonl_response):
+    """match_type=exact (default) should not be sent to the API."""
+    mock_resp = MagicMock()
+    mock_resp.text = mock_cdx_jsonl_response
+
+    with patch(
+        "arquivo_pt_mcp._fetch_with_retry",
+        new=AsyncMock(return_value=mock_resp),
+    ) as mock_fetch:
+        await list_versions("publico.pt", match_type="exact")
+
+    params = mock_fetch.call_args.kwargs.get("params", {})
+    passed = dict(params) if not isinstance(params, dict) else params
+    assert "matchType" not in passed

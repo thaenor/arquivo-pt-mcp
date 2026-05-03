@@ -84,6 +84,26 @@ class TestSearch:
 # ─── image_search ──────────────────────────────────────────
 
 
+class TestSearchAdvanced:
+    """Milestone 3 params: collection, mime_type, offset."""
+
+    async def test_mime_type_pdf_filter(self):
+        result = await search("relatorio", max_items=3, mime_type="pdf")
+        assert result["returned"] >= 1
+        for item in result["results"]:
+            assert item["mime"] == "application/pdf"
+
+    async def test_offset_paginates(self):
+        page1 = await search("portugal", max_items=3, offset=0)
+        page2 = await search("portugal", max_items=3, offset=3)
+        assert page1["returned"] >= 1
+        assert page2["returned"] >= 1
+        # Pages should return different results.
+        urls1 = {r["original_url"] for r in page1["results"]}
+        urls2 = {r["original_url"] for r in page2["results"]}
+        assert urls1 != urls2, "offset did not change result set"
+
+
 class TestImageSearch:
     async def test_basic_query(self):
         result = await image_search("lisboa", max_items=2)
@@ -108,6 +128,19 @@ class TestImageSearch:
     async def test_zero_results(self):
         result = await image_search(NONSENSE_QUERY)
         assert result["returned"] == 0
+
+
+class TestImageSearchAdvanced:
+    """Milestone 3 params: size, safe_search, more."""
+
+    async def test_safe_search_off_with_more_safe(self):
+        result = await image_search("mulher", max_items=3, safe_search="off", more=["safe"])
+        assert result["returned"] >= 1
+        for item in result["results"]:
+            assert "safe" in item, f"safe field missing from item: {item.keys()}"
+            # safe should be a numeric string between 0 and 1.
+            safe_val = float(item["safe"])
+            assert 0.0 <= safe_val <= 1.0
 
 
 # ─── list_versions (CDX) ───────────────────────────────────
@@ -135,6 +168,30 @@ class TestListVersions:
         result = await list_versions(NEVER_ARCHIVED_URL)
         assert result["count"] == 0
         assert result["captures"] == []
+
+
+class TestListVersionsAdvanced:
+    """Milestone 3 params: filter, match_type, sort."""
+
+    async def test_filter_status_200(self):
+        result = await list_versions(KNOWN_ARCHIVED_URL, limit=10, filter=["=status:200"])
+        assert result["count"] >= 1
+        for cap in result["captures"]:
+            assert cap["status"] == "200"
+
+    async def test_sort_reverse_newest_first(self):
+        result = await list_versions(KNOWN_ARCHIVED_URL, limit=10, sort="reverse")
+        assert result["count"] >= 2
+        timestamps = [c["timestamp"] for c in result["captures"]]
+        assert timestamps == sorted(timestamps, reverse=True), (
+            f"sort=reverse not in descending order: {timestamps}"
+        )
+
+    async def test_match_type_prefix(self):
+        result = await list_versions(KNOWN_ARCHIVED_URL, limit=10, match_type="prefix")
+        assert result["count"] >= 1
+        for cap in result["captures"]:
+            assert cap["urlkey"], f"urlkey missing — needed for match_type disambiguation"
 
 
 # ─── get_snapshot ──────────────────────────────────────────

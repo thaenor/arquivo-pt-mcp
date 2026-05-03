@@ -143,6 +143,8 @@ def _parse_cdx_jsonl(text: str) -> list[dict[str, Any]]:
                 "status": rec.get("status", ""),
                 "digest": rec.get("digest", ""),
                 "length": rec.get("length", ""),
+                "urlkey": rec.get("urlkey", ""),
+                "collection": rec.get("collection", ""),
                 "archive_url": f"{WAYBACK}/{ts}/{orig}" if ts and orig else "",
             }
         )
@@ -177,9 +179,15 @@ async def search(
     from_date: str | None = None,
     to_date: str | None = None,
     site_search: str | None = None,
+    collection: str | None = None,
+    mime_type: str | None = None,
+    offset: int = 0,
 ) -> dict[str, Any]:
     """Full-text search across Arquivo.pt."""
-    cache_key = (query, max_items, from_date, to_date, site_search)
+    cache_key = (
+        query, max_items, from_date, to_date, site_search,
+        collection, mime_type, offset,
+    )
     if cache_key in SEARCH_CACHE:
         return SEARCH_CACHE[cache_key]
 
@@ -190,6 +198,12 @@ async def search(
         params["to"] = t
     if site_search:
         params["siteSearch"] = site_search
+    if collection:
+        params["collection"] = collection
+    if mime_type:
+        params["type"] = mime_type
+    if offset > 0:
+        params["offset"] = offset
 
     async with _client() as client:
         resp = await _fetch_with_retry(client, TEXTSEARCH, params=params)
@@ -215,6 +229,8 @@ async def search(
         "total_estimated": data.get("estimated_nr_results"),
         "returned": len(items),
         "results": items,
+        "next_page": data.get("next_page"),
+        "previous_page": data.get("previous_page"),
     }
     SEARCH_CACHE[cache_key] = result
     return result
@@ -227,9 +243,18 @@ async def image_search(
     to_date: str | None = None,
     site_search: str | None = None,
     image_type: str | None = None,
+    size: str | None = None,
+    safe_search: str = "on",
+    collection: str | None = None,
+    offset: int = 0,
+    more: list[str] | None = None,
 ) -> dict[str, Any]:
     """Search 1.8B+ archived images on Arquivo.pt (Dionisius)."""
-    cache_key = (query, max_items, from_date, to_date, site_search, image_type)
+    cache_key = (
+        query, max_items, from_date, to_date, site_search, image_type,
+        size, safe_search, collection, offset,
+        tuple(sorted(more)) if more else (),
+    )
     if cache_key in SEARCH_CACHE:
         return SEARCH_CACHE[cache_key]
 
@@ -242,6 +267,16 @@ async def image_search(
         params["siteSearch"] = site_search
     if image_type:
         params["type"] = image_type
+    if size:
+        params["size"] = size
+    if safe_search:
+        params["safeSearch"] = safe_search
+    if collection:
+        params["collection"] = collection
+    if offset > 0:
+        params["offset"] = offset
+    if more:
+        params["more"] = ",".join(more)
 
     async with _client() as client:
         resp = await _fetch_with_retry(client, IMAGESEARCH, params=params)
@@ -250,21 +285,28 @@ async def image_search(
     items = []
     for item in data.get("responseItems", []):
         alt_list = item.get("imgAlt") or []
-        items.append(
-            {
-                "title": item.get("pageTitle"),
-                "original_url": item.get("pageURL"),
-                "image_url": item.get("imgSrc") or item.get("imgLinkToArchive"),
-                "image_archive_url": item.get("imgLinkToArchive"),
-                "page_archive_url": item.get("pageLinkToArchive"),
-                "captured": item.get("imgTstamp"),
-                "page_captured": item.get("pageTstamp"),
-                "width": item.get("imgWidth"),
-                "height": item.get("imgHeight"),
-                "alt": alt_list[0] if isinstance(alt_list, list) and alt_list else None,
-                "mime": item.get("imgMimeType"),
-            }
-        )
+        entry = {
+            "title": item.get("pageTitle"),
+            "original_url": item.get("pageURL"),
+            "image_url": item.get("imgSrc") or item.get("imgLinkToArchive"),
+            "image_archive_url": item.get("imgLinkToArchive"),
+            "page_archive_url": item.get("pageLinkToArchive"),
+            "captured": item.get("imgTstamp"),
+            "page_captured": item.get("pageTstamp"),
+            "width": item.get("imgWidth"),
+            "height": item.get("imgHeight"),
+            "alt": alt_list[0] if isinstance(alt_list, list) and alt_list else None,
+            "mime": item.get("imgMimeType"),
+        }
+        if "imgDigest" in item:
+            entry["digest"] = item["imgDigest"]
+        if "pageHost" in item:
+            entry["page_host"] = item["pageHost"]
+        if "pageImages" in item:
+            entry["page_images"] = item["pageImages"]
+        if "safe" in item:
+            entry["safe"] = item["safe"]
+        items.append(entry)
     result = {
         "query": query,
         "total_estimated": data.get("totalItems"),
@@ -276,16 +318,56 @@ async def image_search(
 
 
 async def list_versions(
-    url: str, limit: int = 50, offset: int = 0, compact: bool = False
+    url: str,
+    limit: int = 50,
+    offset: int = 0,
+    compact: bool = False,
+    filter: list[str] | None = None,
+    match_type: str = "exact",
+    from_date: str | None = None,
+    to_date: str | None = None,
+    sort: str = "default",
+    closest: str | None = None,
 ) -> dict[str, Any]:
     """List every archived capture of a URL via the CDX server."""
-    cache_key = (url, limit, offset)
+    cache_key = (
+        url, limit, offset,
+        tuple(sorted(filter)) if filter else (),
+        match_type, from_date, to_date, sort, closest,
+    )
     if cache_key in CDX_CACHE:
         captures = CDX_CACHE[cache_key]
     else:
-        params = {"url": url, "output": "json", "limit": limit}
-        if offset > 0:
-            params["offset"] = offset
+        if filter:
+            params: Any = [("url", url), ("output", "json"), ("limit", str(limit))]
+            if offset > 0:
+                params.append(("offset", str(offset)))
+            for f in filter:
+                params.append(("filter", f))
+            if match_type != "exact":
+                params.append(("matchType", match_type))
+            if f_d := _normalize_date(from_date):
+                params.append(("from", f_d))
+            if t_d := _normalize_date(to_date):
+                params.append(("to", t_d))
+            if sort != "default":
+                params.append(("sort", sort))
+            if closest:
+                params.append(("closest", _normalize_date(closest)))
+        else:
+            params = {"url": url, "output": "json", "limit": limit}
+            if offset > 0:
+                params["offset"] = offset
+            if match_type != "exact":
+                params["matchType"] = match_type
+            if f_d := _normalize_date(from_date):
+                params["from"] = f_d
+            if t_d := _normalize_date(to_date):
+                params["to"] = t_d
+            if sort != "default":
+                params["sort"] = sort
+            if closest:
+                params["closest"] = _normalize_date(closest)
         async with _client() as client:
             resp = await _fetch_with_retry(client, CDX, params=params)
             text = resp.text.strip()
@@ -449,6 +531,21 @@ async def list_tools() -> list[Tool]:
                         "type": "string",
                         "description": "Restrict to a domain, e.g. 'publico.pt'",
                     },
+                    "collection": {
+                        "type": "string",
+                        "description": "Restrict to a collection ID (e.g. 'EAWP33')",
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "enum": ["pdf", "html", "doc", "xls", "ppt", "rtf"],
+                        "description": "Filter by MIME type: pdf, html, doc, xls, ppt, rtf",
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "default": 0,
+                        "minimum": 0,
+                        "description": "Pagination offset. Use with next_page/previous_page from response to walk through results instead of fetching next_page URL via WebFetch.",
+                    },
                 },
                 "required": ["query"],
             },
@@ -479,6 +576,35 @@ async def list_tools() -> list[Tool]:
                     },
                     "site_search": {"type": "string", "description": "Restrict to a domain"},
                     "image_type": {"type": "string", "description": "Image format: jpeg, png, gif"},
+                    "size": {
+                        "type": "string",
+                        "enum": ["small", "medium", "large"],
+                        "description": "Image dimensions: small (≤65536 px²), medium, large (>810000 px²)",
+                    },
+                    "safe_search": {
+                        "type": "string",
+                        "enum": ["on", "off"],
+                        "default": "on",
+                        "description": "NSFW filter; set to 'off' to disable. When off, pair with more=['safe'] to get the safe score (values <0.500 indicate unsafe).",
+                    },
+                    "collection": {
+                        "type": "string",
+                        "description": "Restrict to a collection ID",
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "default": 0,
+                        "minimum": 0,
+                        "description": "Pagination offset",
+                    },
+                    "more": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["imgDigest", "pageHost", "pageImages", "safe"],
+                        },
+                        "description": "Surface hidden fields: imgDigest (MD5 hash), pageHost (source host), pageImages (image count on page), safe (NSFW score 0.000-1.000, where <0.500 = unsafe)",
+                    },
                 },
                 "required": ["query"],
             },
@@ -504,6 +630,35 @@ async def list_tools() -> list[Tool]:
                         "type": "boolean",
                         "default": False,
                         "description": "Return year-bucketed summary instead of full CDX records. Reduces output size for URLs with many captures.",
+                    },
+                    "filter": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Field filters, repeatable. Format: '=field:value' (exact), '!=field:value' (negate+exact), '~field:regex' (regex), '!~field:regex' (negate+regex). Example: ['=status:200', '=mime:text/html']",
+                    },
+                    "match_type": {
+                        "type": "string",
+                        "enum": ["exact", "prefix", "host", "domain"],
+                        "default": "exact",
+                        "description": "URL matching: exact (default), prefix, host, or domain",
+                    },
+                    "from_date": {
+                        "type": "string",
+                        "description": "Start timestamp: YYYY, YYYY-MM, YYYY-MM-DD, or YYYYMMDDHHMMSS",
+                    },
+                    "to_date": {
+                        "type": "string",
+                        "description": "End timestamp (same format as from_date)",
+                    },
+                    "sort": {
+                        "type": "string",
+                        "enum": ["default", "reverse", "closest"],
+                        "default": "default",
+                        "description": "Sort order: default (chronological), reverse (newest first), closest (require 'closest' param)",
+                    },
+                    "closest": {
+                        "type": "string",
+                        "description": "Timestamp for sort=closest to rank by time-distance. Accepts same date formats as from_date.",
                     },
                 },
                 "required": ["url"],
