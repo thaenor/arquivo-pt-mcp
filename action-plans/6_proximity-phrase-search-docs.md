@@ -1,6 +1,6 @@
 # Implementation Plan — Proximity / Phrase Search Documentation
 
-**current status: needs architect review**
+**current status: ready to develop**
 
 **Scope.** ROADMAP.md → Milestone 3 → sixth checkbox only
 (*"Proximity / phrase search — phrase quotes and `-exclusion` already
