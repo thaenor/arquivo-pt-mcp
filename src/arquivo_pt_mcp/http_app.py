@@ -78,6 +78,22 @@ def create_app(  # noqa: PLR0913
             )
         )
 
+    # Accept both /mcp and /mcp/ without an HTTP 307. Starlette's Mount only
+    # matches the trailing-slash form; some MCP clients POST to /mcp and either
+    # don't follow redirects or drop the body when they do.
+    trailing = path if path.endswith("/") else path + "/"
+
+    class _NormalizeMcpPath:
+        def __init__(self, app):  # type: ignore[no-untyped-def]
+            self.app = app
+
+        async def __call__(self, scope, receive, send):  # type: ignore[no-untyped-def]
+            if scope["type"] == "http" and scope["path"] == path:
+                scope = {**scope, "path": trailing, "raw_path": trailing.encode("ascii")}
+            await self.app(scope, receive, send)
+
+    middleware.append(Middleware(_NormalizeMcpPath))
+
     app = Starlette(
         lifespan=lifespan,
         routes=[
@@ -86,5 +102,6 @@ def create_app(  # noqa: PLR0913
         ],
         middleware=middleware,
     )
+    app.router.redirect_slashes = False
 
     return app

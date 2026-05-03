@@ -997,6 +997,8 @@ async def _async_main_http(args: argparse.Namespace) -> None:
         port=args.port,
         log_level=args.log_level,
         access_log=False,
+        proxy_headers=True,
+        forwarded_allow_ips="*",
     )
     await uvicorn.Server(config).serve()
 

@@ -1,0 +1,36 @@
+# Secrets
+.env
+.env.*
+
+# VCS
+.git
+.gitignore
+
+# Python build / cache artifacts
+__pycache__
+*.py[cod]
+*.egg-info
+.eggs
+build
+dist
+.coverage
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.tox
+.venv
+venv
+
+# Editor / OS junk
+.DS_Store
+.vscode
+.idea
+.claude
+.devcontainer
+
+# Repo-only docs / scratch
+action-plans
+temp
+docs
+ROADMAP.md
+CLAUDE.md

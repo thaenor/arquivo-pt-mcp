@@ -2,7 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir arquivo-pt-mcp
+COPY . .
+
+RUN pip install --no-cache-dir .
 
 ENV ARQUIVO_PT_MCP_TRANSPORT=http
 ENV ARQUIVO_PT_MCP_HOST=0.0.0.0

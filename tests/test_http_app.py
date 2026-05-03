@@ -51,6 +51,26 @@ def test_mcp_get_missing_session_returns_4xx(client):
     assert 400 <= response.status_code < 500
 
 
+def test_mcp_no_trailing_slash_does_not_redirect(client):
+    """POST /mcp (no trailing slash) reaches the handler without a 307."""
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "0.1"},
+        },
+    }
+    headers = {"Accept": "application/json, text/event-stream"}
+    response = client.post(MCP_PATH, json=payload, headers=headers, follow_redirects=False)
+    assert response.status_code != 307, "MCP endpoint should not redirect on /mcp"
+    assert 200 <= response.status_code < 300
+    data = response.json()
+    assert data.get("result", {}).get("serverInfo", {}).get("name") == "arquivo-pt"
+
+
 def test_create_app_independence():
     """Two calls to create_app produce independent apps that both serve healthz."""
     app1 = create_app(enable_dns_rebinding_protection=False)
