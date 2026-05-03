@@ -53,3 +53,4 @@ async def test_stdio_tool_schemas_have_required_fields():
     assert by_name["list_versions"].inputSchema["required"] == ["url"]
     assert by_name["get_snapshot"].inputSchema["required"] == ["url"]
     assert by_name["extract_text"].inputSchema["required"] == ["url"]
+    assert by_name["get_screenshot"].inputSchema["required"] == ["url"]

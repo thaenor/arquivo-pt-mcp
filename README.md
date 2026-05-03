@@ -12,7 +12,7 @@ Um servidor **Model Context Protocol (MCP)** para o **[Arquivo.pt](https://arqui
 
 ### O que faz
 
-O `arquivo-pt-mcp` expõe cinco **ferramentas** ao modelo de linguagem, permitindo-lhe consultar o Arquivo.pt como se fosse uma base de dados nativa:
+O `arquivo-pt-mcp` expõe seis **ferramentas** ao modelo de linguagem, permitindo-lhe consultar o Arquivo.pt como se fosse uma base de dados nativa:
 
 | Ferramenta | Descrição |
 |------------|-----------|
@@ -21,6 +21,7 @@ O `arquivo-pt-mcp` expõe cinco **ferramentas** ao modelo de linguagem, permitin
 | **`list_versions`** | Lista todas as capturas de um determinado URL através do servidor CDX |
 | **`get_snapshot`** | Obtém uma página arquivada específica a partir de um URL + timestamp |
 | **`extract_text`** | Obtém uma página arquivada e devolve o texto legível (HTML removido) |
+| **`get_screenshot`** | Obtém o URL de uma captura PNG renderizada de uma página arquivada (opcionalmente com os bytes inline) |
 
 ### Instalação
 
@@ -79,7 +80,8 @@ Uma vez configurado, pode pedir ao Claude coisas como:
 - *“Mostra-me como a página inicial do Público era a 1 de janeiro de 2010.”*
 - *“Quantas vezes foi o Expresso arquivado em 2008?”*
 - *“Extrai o texto do snapshot mais antigo do sapo.pt.”*
-- *“Procura imagens do Terreiro do Paço arquivadas antes de 2010.”*
+- *”Procura imagens do Terreiro do Paço arquivadas antes de 2010.”*
+- *”Mostra-me uma screenshot da homepage do Público em 1 de janeiro de 2010.”*
 
 ### Endpoints da API utilizados
 
@@ -88,6 +90,8 @@ Uma vez configurado, pode pedir ao Claude coisas como:
 - `https://arquivo.pt/wayback/cdx` — índice de capturas (CDX)
 - `https://arquivo.pt/wayback/{timestamp}/{url}` — obtenção de snapshots
 - `https://arquivo.pt/wayback/noFrame/{timestamp}/{url}` — snapshot limpo para extração de texto
+- `https://arquivo.pt/screenshot?url=...` — captura PNG renderizada
+- `https://arquivo.pt/noFrame/replay/{timestamp}/{url}` — replay sem frame para screenshot
 
 Documentação oficial: <https://github.com/arquivo/pwa-technologies/wiki/Arquivo.pt-API>
 
@@ -158,7 +162,7 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 
 ### What it does
 
-`arquivo-pt-mcp` exposes five **tools** to the language model, letting it query Arquivo.pt as if it were a native data source:
+`arquivo-pt-mcp` exposes six **tools** to the language model, letting it query Arquivo.pt as if it were a native data source:
 
 | Tool | Description |
 |------|-------------|
@@ -167,6 +171,7 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 | **`list_versions`** | Every capture of a given URL, via the CDX server |
 | **`get_snapshot`** | Resolve a URL + timestamp to a specific archived page |
 | **`extract_text`** | Fetch an archived page and return its readable text (HTML stripped) |
+| **`get_screenshot`** | Get the PNG render URL of an archived page (optionally embed the bytes inline) |
 
 ### Installation
 
@@ -225,7 +230,8 @@ Once connected, you can ask Claude things like:
 - *“Show me how publico.pt’s homepage looked on January 1, 2010.”*
 - *“How many times was expresso.pt archived in 2008?”*
 - *“Extract the text from the earliest snapshot of sapo.pt.”*
-- *“Search for archived images of Terreiro do Paço from before 2010.”*
+- *”Search for archived images of Terreiro do Paço from before 2010.”*
+- *”Show me a screenshot of Público's homepage on Jan 1, 2010.”*
 
 ### API endpoints used
 
@@ -234,6 +240,8 @@ Once connected, you can ask Claude things like:
 - `https://arquivo.pt/wayback/cdx` — capture index (CDX)
 - `https://arquivo.pt/wayback/{timestamp}/{url}` — snapshot retrieval
 - `https://arquivo.pt/wayback/noFrame/{timestamp}/{url}` — clean snapshot for text extraction
+- `https://arquivo.pt/screenshot?url=...` — PNG screenshot render
+- `https://arquivo.pt/noFrame/replay/{timestamp}/{url}` — frameless replay for screenshot
 
 Official docs: <https://github.com/arquivo/pwa-technologies/wiki/Arquivo.pt-API>
 

@@ -21,5 +21,6 @@ EXPECTED_TOOL_NAMES = {
     "list_versions",
     "get_snapshot",
     "extract_text",
+    "get_screenshot",
 }
 """The complete set of tools the MCP server should expose."""

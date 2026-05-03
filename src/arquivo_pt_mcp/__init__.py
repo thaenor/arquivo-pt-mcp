@@ -2,13 +2,14 @@
 arquivo-pt-mcp — Model Context Protocol server for Arquivo.pt
 (the Portuguese Web Archive).
 
-Exposes five tools:
+Exposes six tools:
 
 - search           full-text/URL search across the archive
 - list_versions    CDX query: every capture of a given URL
 - get_snapshot     fetch a specific archived page
 - extract_text     fetch + strip HTML, return readable text
 - image_search     search 1.8B+ archived images
+- get_screenshot   PNG render of an archived page
 
 Endpoints used:
   https://arquivo.pt/textsearch                 (search API)
@@ -22,21 +23,23 @@ API docs: docs/api-reference.md
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import re
 from datetime import datetime
 from typing import Any
-from urllib.parse import quote  # noqa: F401 — kept for future URL-encoding needs
+from urllib.parse import quote
 
 import httpx
 from cachetools import TTLCache
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import ImageContent, TextContent, Tool
 from pydantic import ValidationError
 
 from arquivo_pt_mcp.models import (
     ExtractTextParams,
+    GetScreenshotParams,
     GetSnapshotParams,
     ImageSearchParams,
     ListVersionsParams,
@@ -61,6 +64,7 @@ server = Server("arquivo-pt")
 CDX_CACHE = TTLCache(maxsize=1000, ttl=15 * 60)
 SEARCH_CACHE = TTLCache(maxsize=1000, ttl=15 * 60)
 SNAPSHOT_CACHE = TTLCache(maxsize=1000, ttl=60 * 60)
+SCREENSHOT_CACHE = TTLCache(maxsize=200, ttl=60 * 60)
 
 
 def clear_cache() -> None:
@@ -68,6 +72,7 @@ def clear_cache() -> None:
     CDX_CACHE.clear()
     SEARCH_CACHE.clear()
     SNAPSHOT_CACHE.clear()
+    SCREENSHOT_CACHE.clear()
 
 
 # ─── helpers ────────────────────────────────────────────────
@@ -149,6 +154,16 @@ def _parse_cdx_jsonl(text: str) -> list[dict[str, Any]]:
             }
         )
     return captures
+
+
+def _screenshot_url(url: str, ts: str) -> tuple[str, str]:
+    """Return (no_frame_replay_url, screenshot_url) for a (url, timestamp).
+
+    The Arquivo.pt screenshot endpoint takes the noFrame replay URL as a
+    percent-encoded query argument — see docs/api-reference.md §4.
+    """
+    inner = f"{ARQUIVO_BASE}/noFrame/replay/{ts}/{url}"
+    return inner, f"{ARQUIVO_BASE}/screenshot?url={quote(inner, safe='')}"
 
 
 async def _fetch_with_retry(client: httpx.AsyncClient, url: str, **kwargs: Any) -> httpx.Response:
@@ -440,6 +455,76 @@ async def get_snapshot(url: str, timestamp: str | None = None) -> dict[str, Any]
     return result
 
 
+async def get_screenshot(
+    url: str,
+    timestamp: str | None = None,
+    inline: bool = False,
+    max_bytes: int = 500_000,
+) -> dict[str, Any] | tuple[dict[str, Any], bytes, str]:
+    """Get the Arquivo.pt PNG render of a snapshot.
+
+    With inline=False (default): return JSON containing the screenshot URL.
+    With inline=True: also return the raw PNG bytes for embedding as
+    ImageContent (subject to max_bytes).
+
+    Returns a dict in URL-only mode, or a (dict, png_bytes, mime) triple
+    in inline mode. The dispatcher in call_tool() unpacks both shapes.
+    """
+    snap = await get_snapshot(url, timestamp)
+    if not snap.get("found"):
+        return snap
+    ts = snap["timestamp"]
+    no_frame, screenshot_url = _screenshot_url(url, ts)
+
+    base = {
+        "url": url,
+        "timestamp": ts,
+        "found": True,
+        "screenshot_url": screenshot_url,
+        "no_frame_url": no_frame,
+        "captured_at_iso": _ts_to_iso(ts),
+    }
+
+    if not inline:
+        return base
+
+    cache_key = (url, ts, max_bytes)
+    if cache_key in SCREENSHOT_CACHE:
+        cached_meta, cached_bytes, cached_mime = SCREENSHOT_CACHE[cache_key]
+        return cached_meta, cached_bytes, cached_mime
+
+    async with _client() as client:
+        try:
+            resp = await _fetch_with_retry(client, screenshot_url)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404:
+                base["warning"] = (
+                    "screenshot endpoint returned 404 — Arquivo.pt has not "
+                    "rendered this snapshot. Try a different timestamp."
+                )
+                return base
+            raise
+
+    mime = resp.headers.get("content-type", "").split(";")[0].strip().lower()
+    if mime != "image/png":
+        base["warning"] = f"unexpected content-type {mime!r} from screenshot endpoint"
+        return base
+
+    body = resp.content
+    if len(body) > max_bytes:
+        base["truncated"] = True
+        base["byte_size"] = len(body)
+        base["note"] = (
+            f"PNG ({len(body)} bytes) exceeds max_bytes={max_bytes}; "
+            "screenshot URL still returned. Increase max_bytes to embed."
+        )
+        return base
+
+    meta = {**base, "inline": True, "byte_size": len(body), "truncated": False}
+    SCREENSHOT_CACHE[cache_key] = (meta, body, mime)
+    return meta, body, mime
+
+
 async def extract_text(
     url: str, timestamp: str | None = None, max_chars: int = 8000
 ) -> dict[str, Any]:
@@ -705,6 +790,38 @@ async def list_tools() -> list[Tool]:
                 "required": ["url"],
             },
         ),
+        Tool(
+            name="get_screenshot",
+            description=(
+                "Get the Arquivo.pt PNG render of an archived page. By default "
+                "returns the screenshot URL; pass inline=true to embed the PNG "
+                "(useful for letting the model see the page). Omit timestamp "
+                "for the latest capture."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "URL to screenshot"},
+                    "timestamp": {
+                        "type": "string",
+                        "description": "YYYY, YYYY-MM-DD, or YYYYMMDDHHMMSS",
+                    },
+                    "inline": {
+                        "type": "boolean",
+                        "default": False,
+                        "description": "Embed the PNG bytes in the response (heavier).",
+                    },
+                    "max_bytes": {
+                        "type": "integer",
+                        "default": 500000,
+                        "minimum": 1000,
+                        "maximum": 5000000,
+                        "description": "When inline=true, cap the embedded PNG size.",
+                    },
+                },
+                "required": ["url"],
+            },
+        ),
     ]
 
 
@@ -714,17 +831,19 @@ PARAM_MODELS = {
     "list_versions": ListVersionsParams,
     "get_snapshot": GetSnapshotParams,
     "extract_text": ExtractTextParams,
+    "get_screenshot": GetScreenshotParams,
 }
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent | ImageContent]:
     handlers = {
         "search": search,
         "image_search": image_search,
         "list_versions": list_versions,
         "get_snapshot": get_snapshot,
         "extract_text": extract_text,
+        "get_screenshot": get_screenshot,
     }
     handler = handlers.get(name)
     if not handler:
@@ -739,6 +858,18 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
 
     try:
         result = await handler(**arguments)
+
+        if isinstance(result, tuple) and len(result) == 3:
+            meta, body, mime = result
+            return [
+                TextContent(type="text", text=json.dumps(meta, ensure_ascii=False, indent=2)),
+                ImageContent(
+                    type="image",
+                    data=base64.b64encode(body).decode("ascii"),
+                    mimeType=mime,
+                ),
+            ]
+
         return [TextContent(type="text", text=json.dumps(result, ensure_ascii=False, indent=2))]
     except httpx.HTTPStatusError as e:
         return [

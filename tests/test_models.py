@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from arquivo_pt_mcp.models import (
     ExtractTextParams,
+    GetScreenshotParams,
     GetSnapshotParams,
     ImageSearchParams,
     ListVersionsParams,
@@ -228,3 +229,40 @@ def test_list_versions_params_from_date_accepted():
 def test_list_versions_params_to_date_accepted():
     p = ListVersionsParams(url="publico.pt", to_date="2006")
     assert p.to_date == "2006"
+
+
+# ── GetScreenshotParams ─────────────────────────────────────
+
+
+def test_get_screenshot_params_valid():
+    p = GetScreenshotParams(url="publico.pt")
+    assert p.url == "publico.pt"
+    assert p.timestamp is None
+    assert p.inline is False
+    assert p.max_bytes == 500_000
+
+
+def test_get_screenshot_params_with_timestamp():
+    p = GetScreenshotParams(url="publico.pt", timestamp="2010")
+    assert p.timestamp == "2010"
+
+
+def test_get_screenshot_params_inline_mode():
+    p = GetScreenshotParams(url="publico.pt", inline=True, max_bytes=1_000_000)
+    assert p.inline is True
+    assert p.max_bytes == 1_000_000
+
+
+def test_get_screenshot_params_max_bytes_below_min():
+    with pytest.raises(ValidationError):
+        GetScreenshotParams(url="publico.pt", max_bytes=999)
+
+
+def test_get_screenshot_params_max_bytes_above_max():
+    with pytest.raises(ValidationError):
+        GetScreenshotParams(url="publico.pt", max_bytes=5_000_001)
+
+
+def test_get_screenshot_params_missing_url():
+    with pytest.raises(ValidationError):
+        GetScreenshotParams()

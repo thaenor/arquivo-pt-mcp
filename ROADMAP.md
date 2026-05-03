@@ -38,7 +38,7 @@ Focus: make the server production-ready for heavy, unattended use.
 Focus: expose more of the Arquivo.pt API surface to the model.
 
 - [ ] **Advanced search params** — `search`: add `collection`, `type` (MIME filter), and `offset` (pagination); `list_versions`: add `filter` (status/MIME/regex), `matchType` (`prefix`/`host`/`domain`), `from`/`to` date range, `sort`, and `closest`; `image_search`: add `size` (small/medium/large), `safeSearch`, `collection`, `offset`, and `more` (surface hidden fields: `imgDigest`, `safe` score)
-- [ ] **Screenshot tool** — new `get_screenshot` tool returning the Arquivo.pt PNG render URL for any snapshot; the screenshot endpoint (`/screenshot?url=…`) is already referenced in `search` results but is not directly accessible as a tool
+- [x] **Screenshot tool** — new `get_screenshot` tool returning the Arquivo.pt PNG render URL for any snapshot; the screenshot endpoint (`/screenshot?url=…`) is already referenced in `search` results but is not directly accessible as a tool
 - [ ] **Metadata tool** — new `get_metadata` tool querying `/textsearch?metadata={url}/{timestamp}` to return HTTP status code, MIME type, content length, and digest for a specific capture (redirect chain and language are not available from the Arquivo.pt API)
 - [ ] **Diff tool** — new `diff_snapshots` tool comparing two snapshots of the same URL and returning a human-readable change summary
 - [ ] **Bulk CDX export** — pagination via `offset`/`limit` already works, but max limit is capped at 500 (API supports 100,000) and the response lacks pagination metadata (total count, next-page indicator)

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from arquivo_pt_mcp import clear_cache, extract_text, list_versions, search
+from arquivo_pt_mcp import SCREENSHOT_CACHE, clear_cache, extract_text, list_versions, search
 
 
 @pytest.mark.asyncio
@@ -96,3 +96,11 @@ async def test_clear_cache_removes_entries(mock_search_response):
         await search("term")
 
     assert fetch_mock.call_count == 2
+
+
+def test_clear_cache_empties_screenshot_cache():
+    clear_cache()
+    SCREENSHOT_CACHE[("url", "ts", 500_000)] = ({}, b"data", "image/png")
+    assert len(SCREENSHOT_CACHE) == 1
+    clear_cache()
+    assert len(SCREENSHOT_CACHE) == 0

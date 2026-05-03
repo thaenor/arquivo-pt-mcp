@@ -17,6 +17,7 @@ import pytest
 from arquivo_pt_mcp import (
     call_tool,
     extract_text,
+    get_screenshot,
     get_snapshot,
     image_search,
     list_versions,
@@ -247,6 +248,29 @@ class TestExtractText:
         assert result.get("found") is False
 
 
+# ─── get_screenshot ────────────────────────────────────────
+
+
+class TestGetScreenshot:
+    async def test_url_mode_live(self):
+        result = await get_screenshot(KNOWN_ARCHIVED_URL, timestamp=KNOWN_TIMESTAMP_2010)
+        assert result["found"] is True
+        assert result["screenshot_url"].startswith("https://arquivo.pt/screenshot?url=")
+        assert "noFrame%2Freplay" in result["screenshot_url"]
+
+    async def test_inline_live_smoke(self):
+        result = await get_screenshot(
+            KNOWN_ARCHIVED_URL, timestamp=KNOWN_TIMESTAMP_2010, inline=True, max_bytes=2_000_000
+        )
+        # Either we got the image, or arquivo.pt didn't render that capture:
+        assert isinstance(result, (dict, tuple))
+        if isinstance(result, tuple):
+            meta, body, mime = result
+            assert mime == "image/png"
+            assert body[:8] == b"\x89PNG\r\n\x1a\n"
+            assert meta["inline"] is True
+
+
 # ─── MCP call_tool dispatcher ──────────────────────────────
 
 
@@ -263,6 +287,10 @@ class TestMcpDispatcher:
             (
                 "extract_text",
                 {"url": KNOWN_ARCHIVED_URL, "timestamp": KNOWN_TIMESTAMP_2010, "max_chars": 1000},
+            ),
+            (
+                "get_screenshot",
+                {"url": KNOWN_ARCHIVED_URL, "timestamp": KNOWN_TIMESTAMP_2010},
             ),
         ],
     )

@@ -75,3 +75,10 @@ class ExtractTextParams(BaseModel):
     url: str
     timestamp: str | None = None
     max_chars: int = Field(default=8000, ge=500, le=50000)
+
+
+class GetScreenshotParams(BaseModel):
+    url: str
+    timestamp: str | None = None
+    inline: bool = False
+    max_bytes: int = Field(default=500_000, ge=1_000, le=5_000_000)
