@@ -27,11 +27,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import importlib.metadata
 import json
 import re
 from datetime import datetime
 from typing import Any
 from urllib.parse import quote
+
+try:
+    __version__ = importlib.metadata.version("arquivo-pt-mcp")
+except importlib.metadata.PackageNotFoundError:
+    __version__ = "0.0.0.dev"
 
 import httpx
 from cachetools import TTLCache
@@ -56,7 +62,7 @@ CDX = f"{ARQUIVO_BASE}/wayback/cdx"
 WAYBACK = f"{ARQUIVO_BASE}/wayback"
 TEXTEXTRACTED = f"{ARQUIVO_BASE}/textextracted"
 
-USER_AGENT = "arquivo-pt-mcp/0.1.0 (https://github.com/thaenor/arquivo-pt-mcp)"
+USER_AGENT = f"arquivo-pt-mcp/{__version__} (https://github.com/thaenor/arquivo-pt-mcp)"
 DEFAULT_TIMEOUT = 30.0
 MAX_RETRIES = 5
 

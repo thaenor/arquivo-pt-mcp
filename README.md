@@ -25,19 +25,22 @@ O `arquivo-pt-mcp` expõe seis **ferramentas** ao modelo de linguagem, permitind
 
 ### Instalação
 
-> ⚠️ **Ainda não publicado no PyPI.**
-> Instale a partir do código fonte ou via `uv`:
-
 ```bash
-git clone https://github.com/thaenor/arquivo-pt-mcp.git
-cd arquivo-pt-mcp
-pip install -e ".[dev]"
+pip install arquivo-pt-mcp
 ```
 
 Ou, se preferir usar o `uv`:
 
 ```bash
-uv pip install -e ".[dev]"
+uv add arquivo-pt-mcp
+```
+
+Para desenvolvimento (instalação a partir do código fonte):
+
+```bash
+git clone https://github.com/thaenor/arquivo-pt-mcp.git
+cd arquivo-pt-mcp
+pip install -e ".[dev]"
 ```
 
 ### Configuração
@@ -199,19 +202,22 @@ Este projeto foi desenvolvido para participar no **[Prémio Arquivo.pt](https://
 
 ### Installation
 
-> ⚠️ **Not yet published to PyPI.**
-> Install from source with `pip` or `uv`:
-
 ```bash
-git clone https://github.com/thaenor/arquivo-pt-mcp.git
-cd arquivo-pt-mcp
-pip install -e ".[dev]"
+pip install arquivo-pt-mcp
 ```
 
 Or with `uv`:
 
 ```bash
-uv pip install -e ".[dev]"
+uv add arquivo-pt-mcp
+```
+
+For development (install from source):
+
+```bash
+git clone https://github.com/thaenor/arquivo-pt-mcp.git
+cd arquivo-pt-mcp
+pip install -e ".[dev]"
 ```
 
 ### Configuration
