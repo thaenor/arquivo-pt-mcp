@@ -30,9 +30,7 @@ class ImageSearchParams(BaseModel):
     safe_search: Literal["on", "off"] = "on"
     collection: str | None = None
     offset: int = Field(default=0, ge=0)
-    more: list[Literal["imgDigest", "pageHost", "pageImages", "safe"]] = Field(
-        default_factory=list
-    )
+    more: list[Literal["imgDigest", "pageHost", "pageImages", "safe"]] = Field(default_factory=list)
 
 
 class ListVersionsParams(BaseModel):

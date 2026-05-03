@@ -192,7 +192,7 @@ class TestListVersionsAdvanced:
         result = await list_versions(KNOWN_ARCHIVED_URL, limit=10, match_type="prefix")
         assert result["count"] >= 1
         for cap in result["captures"]:
-            assert cap["urlkey"], f"urlkey missing — needed for match_type disambiguation"
+            assert cap["urlkey"], "urlkey missing — needed for match_type disambiguation"
 
 
 # ─── get_snapshot ──────────────────────────────────────────

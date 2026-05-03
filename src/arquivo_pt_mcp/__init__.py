@@ -200,8 +200,14 @@ async def search(
 ) -> dict[str, Any]:
     """Full-text search across Arquivo.pt."""
     cache_key = (
-        query, max_items, from_date, to_date, site_search,
-        collection, mime_type, offset,
+        query,
+        max_items,
+        from_date,
+        to_date,
+        site_search,
+        collection,
+        mime_type,
+        offset,
     )
     if cache_key in SEARCH_CACHE:
         return SEARCH_CACHE[cache_key]
@@ -266,8 +272,16 @@ async def image_search(
 ) -> dict[str, Any]:
     """Search 1.8B+ archived images on Arquivo.pt (Dionisius)."""
     cache_key = (
-        query, max_items, from_date, to_date, site_search, image_type,
-        size, safe_search, collection, offset,
+        query,
+        max_items,
+        from_date,
+        to_date,
+        site_search,
+        image_type,
+        size,
+        safe_search,
+        collection,
+        offset,
         tuple(sorted(more)) if more else (),
     )
     if cache_key in SEARCH_CACHE:
@@ -346,9 +360,15 @@ async def list_versions(
 ) -> dict[str, Any]:
     """List every archived capture of a URL via the CDX server."""
     cache_key = (
-        url, limit, offset,
+        url,
+        limit,
+        offset,
         tuple(sorted(filter)) if filter else (),
-        match_type, from_date, to_date, sort, closest,
+        match_type,
+        from_date,
+        to_date,
+        sort,
+        closest,
     )
     if cache_key in CDX_CACHE:
         captures = CDX_CACHE[cache_key]
@@ -395,7 +415,11 @@ async def list_versions(
             year = c["timestamp"][:4] if c.get("timestamp") else "unknown"
             by_year[year] = by_year.get(year, 0) + 1
         compact_captures = [
-            {"timestamp": c["timestamp"], "original": c["original"], "archive_url": c["archive_url"]}
+            {
+                "timestamp": c["timestamp"],
+                "original": c["original"],
+                "archive_url": c["archive_url"],
+            }
             for c in captures
         ]
         return {
@@ -629,7 +653,11 @@ async def list_tools() -> list[Tool]:
                         "type": "integer",
                         "default": 0,
                         "minimum": 0,
-                        "description": "Pagination offset. Use with next_page/previous_page from response to walk through results instead of fetching next_page URL via WebFetch.",
+                        "description": (
+                            "Pagination offset. Use with next_page/previous_page from "
+                            "response to walk through results instead of fetching "
+                            "next_page URL via WebFetch."
+                        ),
                     },
                 },
                 "required": ["query"],
@@ -664,13 +692,19 @@ async def list_tools() -> list[Tool]:
                     "size": {
                         "type": "string",
                         "enum": ["small", "medium", "large"],
-                        "description": "Image dimensions: small (≤65536 px²), medium, large (>810000 px²)",
+                        "description": (
+                            "Image dimensions: small (≤65536 px²), medium, large (>810000 px²)"
+                        ),
                     },
                     "safe_search": {
                         "type": "string",
                         "enum": ["on", "off"],
                         "default": "on",
-                        "description": "NSFW filter; set to 'off' to disable. When off, pair with more=['safe'] to get the safe score (values <0.500 indicate unsafe).",
+                        "description": (
+                            "NSFW filter; set to 'off' to disable. When off, "
+                            "pair with more=['safe'] to get the safe score "
+                            "(values <0.500 indicate unsafe)."
+                        ),
                     },
                     "collection": {
                         "type": "string",
@@ -688,7 +722,12 @@ async def list_tools() -> list[Tool]:
                             "type": "string",
                             "enum": ["imgDigest", "pageHost", "pageImages", "safe"],
                         },
-                        "description": "Surface hidden fields: imgDigest (MD5 hash), pageHost (source host), pageImages (image count on page), safe (NSFW score 0.000-1.000, where <0.500 = unsafe)",
+                        "description": (
+                            "Surface hidden fields: imgDigest (MD5 hash), "
+                            "pageHost (source host), pageImages (image count "
+                            "on page), safe (NSFW score 0.000-1.000, where "
+                            "<0.500 = unsafe)"
+                        ),
                     },
                 },
                 "required": ["query"],
@@ -714,12 +753,22 @@ async def list_tools() -> list[Tool]:
                     "compact": {
                         "type": "boolean",
                         "default": False,
-                        "description": "Return year-bucketed summary instead of full CDX records. Reduces output size for URLs with many captures.",
+                        "description": (
+                            "Return year-bucketed summary instead of full CDX "
+                            "records. Reduces output size for URLs with many "
+                            "captures."
+                        ),
                     },
                     "filter": {
                         "type": "array",
                         "items": {"type": "string"},
-                        "description": "Field filters, repeatable. Format: '=field:value' (exact), '!=field:value' (negate+exact), '~field:regex' (regex), '!~field:regex' (negate+regex). Example: ['=status:200', '=mime:text/html']",
+                        "description": (
+                            "Field filters, repeatable. Format: '=field:value' "
+                            "(exact), '!=field:value' (negate+exact), "
+                            "'~field:regex' (regex), '!~field:regex' "
+                            "(negate+regex). Example: ['=status:200', "
+                            "'=mime:text/html']"
+                        ),
                     },
                     "match_type": {
                         "type": "string",
@@ -729,7 +778,9 @@ async def list_tools() -> list[Tool]:
                     },
                     "from_date": {
                         "type": "string",
-                        "description": "Start timestamp: YYYY, YYYY-MM, YYYY-MM-DD, or YYYYMMDDHHMMSS",
+                        "description": (
+                            "Start timestamp: YYYY, YYYY-MM, YYYY-MM-DD, or YYYYMMDDHHMMSS"
+                        ),
                     },
                     "to_date": {
                         "type": "string",
@@ -739,11 +790,18 @@ async def list_tools() -> list[Tool]:
                         "type": "string",
                         "enum": ["default", "reverse", "closest"],
                         "default": "default",
-                        "description": "Sort order: default (chronological), reverse (newest first), closest (require 'closest' param)",
+                        "description": (
+                            "Sort order: default (chronological), reverse "
+                            "(newest first), closest (require 'closest' param)"
+                        ),
                     },
                     "closest": {
                         "type": "string",
-                        "description": "Timestamp for sort=closest to rank by time-distance. Accepts same date formats as from_date.",
+                        "description": (
+                            "Timestamp for sort=closest to rank by "
+                            "time-distance. Accepts same date formats as "
+                            "from_date."
+                        ),
                     },
                 },
                 "required": ["url"],
