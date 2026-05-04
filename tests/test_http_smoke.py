@@ -47,6 +47,7 @@ async def test_http_lists_tools():
             str(port),
             "--log-level",
             "warning",
+            "--no-dns-rebinding-protection",
         ]
     )
 
