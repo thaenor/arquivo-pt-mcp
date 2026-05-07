@@ -22,6 +22,8 @@ Source: <https://github.com/arquivo/pwa-technologies/wiki/APIs>.
 
 ## 1. Full-Text Search API
 
+**Official docs:** <https://github.com/arquivo/pwa-technologies/wiki/Arquivo.pt-API>
+
 **Endpoint:** `GET https://arquivo.pt/textsearch`
 **Output:** JSON
 
@@ -120,6 +122,8 @@ curl "https://arquivo.pt/textsearch?q=elei%C3%A7%C3%B5es+2005&maxItems=5&from=20
 
 ## 2. CDX Server API
 
+**Official docs:** <https://github.com/arquivo/pwa-technologies/wiki/URL-search:-CDX-server-API> · **Upstream (pywb):** <https://pywb.readthedocs.io/en/master/manual/cdxserver_api.html>
+
 **Endpoint:** `GET https://arquivo.pt/wayback/cdx`
 **Output:** CDXJ text (default) or JSON-lines
 
@@ -187,6 +191,8 @@ curl "https://arquivo.pt/wayback/cdx?url=publico.pt/*&matchType=prefix&filter==s
 
 ## 3. Image Search API v1.1 (Dionisius)
 
+**Official docs:** <https://github.com/arquivo/pwa-technologies/wiki/ImageSearch-API-v1.1>
+
 **Endpoint:** `GET https://arquivo.pt/imagesearch`
 **Output:** JSON
 **Source code:** [github.com/arquivo/image-search-api](https://github.com/arquivo/image-search-api)
@@ -201,7 +207,7 @@ Searches **584 million+ images** indexed across 1,800 million+ archived pages (f
 | `from` | string | `1996` | — | Start date (same formats as text search) |
 | `to` | string | current year − 1 | — | End date |
 | `type` | string | all | — | Image format: `png`, `jpeg`, `gif`, `tiff`, … |
-| `size` | string | all | — | Image dimensions: `small` (≤65,536 px²), `medium` (65,537–810,000 px²), `large` (>810,000 px²) |
+| `size` | string | all | — | Image dimensions: `sm` (≤65,536 px²), `md` (65,537–810,000 px²), `lg` (>810,000 px²) |
 | `siteSearch` | string | all | — | Domain filter (comma-separated, supports wildcard subdomains) |
 | `safeSearch` | string | `on` | — | NSFW filter; `off` to disable. Backed by the `safe` field. |
 | `collection` | string | all | — | Restrict to collection ID |
@@ -265,12 +271,14 @@ Top-level wrapper:
 ### Example
 
 ```bash
-curl "https://arquivo.pt/imagesearch?q=lisboa&maxItems=5&size=medium&from=2010&to=2015&more=safe&prettyPrint=true"
+curl "https://arquivo.pt/imagesearch?q=lisboa&maxItems=5&size=md&from=2010&to=2015&more=safe&prettyPrint=true"
 ```
 
 ---
 
 ## 4. Wayback / Memento API (Snapshot Retrieval)
+
+**Official docs:** <https://github.com/arquivo/pwa-technologies/wiki/Memento--API>
 
 ### Replay URL Patterns
 
@@ -372,4 +380,4 @@ Pre-curated datasets selectable via the `collection` parameter on TextSearch and
 
 ---
 
-*Last verified against live endpoints and official wiki: 2026-05-02*
+*Last verified against live endpoints and official wiki: 2026-05-07*
