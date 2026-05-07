@@ -305,4 +305,8 @@ class TestMcpDispatcher:
     async def test_call_tool_unknown(self):
         result = await call_tool("nonexistent_tool", {})
         assert len(result) == 1
-        assert "unknown tool" in result[0].text
+        assert result[0].type == "text"
+        parsed = json.loads(result[0].text)
+        assert isinstance(parsed, dict)
+        assert "error" in parsed
+        assert "unknown tool" in parsed["error"]

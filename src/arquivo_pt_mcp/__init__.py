@@ -236,7 +236,9 @@ async def search(
         params["offset"] = offset
 
     async with _client() as client:
-        resp = await _fetch_with_retry(client, TEXTSEARCH, params=params)
+        resp = await _fetch_with_retry(
+            client, TEXTSEARCH, params=params, timeout=DEFAULT_TIMEOUT * 2
+        )
         data = resp.json()
 
     items = []
@@ -914,14 +916,28 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent | 
     }
     handler = handlers.get(name)
     if not handler:
-        return [TextContent(type="text", text=f"unknown tool: {name}")]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps({"error": f"unknown tool: {name}"}, ensure_ascii=False, indent=2),
+            )
+        ]
 
     model = PARAM_MODELS.get(name)
     if model:
         try:
             arguments = model(**arguments).model_dump()
         except ValidationError as e:
-            return [TextContent(type="text", text=f"invalid arguments: {e}")]
+            return [
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {"error": f"invalid arguments: {e}"},
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                )
+            ]
 
     try:
         result = await handler(**arguments)
@@ -942,8 +958,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent | 
         return [
             TextContent(
                 type="text",
-                text=(
-                    f"arquivo.pt returned HTTP {e.response.status_code}: {e.response.text[:500]}"
+                text=json.dumps(
+                    {
+                        "error": (
+                            f"arquivo.pt returned HTTP {e.response.status_code}: "
+                            f"{e.response.text[:500]}"
+                        ),
+                    },
+                    ensure_ascii=False,
+                    indent=2,
                 ),
             )
         ]
@@ -951,11 +974,26 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent | 
         return [
             TextContent(
                 type="text",
-                text=(f"arquivo.pt request timed out after {DEFAULT_TIMEOUT}s"),
+                text=json.dumps(
+                    {
+                        "error": f"arquivo.pt request timed out after {DEFAULT_TIMEOUT}s",
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
             )
         ]
     except Exception as e:
-        return [TextContent(type="text", text=f"error in {name}: {type(e).__name__}: {e}")]
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(
+                    {"error": f"error in {name}: {type(e).__name__}: {e}"},
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            )
+        ]
 
 
 def main() -> None:
