@@ -5,9 +5,26 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from arquivo_pt_mcp import server
+
+# HF-only static landing page (not shipped in pip wheel)
+_INDEX_PATH = Path(__file__).parent.parent.parent / "hf_static" / "index.html"
+
+# Minimal fallback HTML for pip-installed package (no hf_static)
+_FALLBACK_HTML = """<!DOCTYPE html>
+<html>
+<head><title>Arquivo.pt MCP Server</title></head>
+<body style="font-family:system-ui;background:#0b0f19;color:#f0f4f8;padding:2rem">
+<h1>📚 Arquivo.pt MCP Server</h1>
+<p>Arquivo.pt MCP server — <a href="https://arquivo.pt" style="color:#ffcd00">Arquivo.pt</a></p>
+<p><code style="background:#1a2332;padding:.25rem .5rem">/mcp</code> — MCP endpoint</p>
+<p><code style="background:#1a2332;padding:.25rem .5rem">/healthz</code> — Health check</p>
+<p><a href="https://github.com/thaenor/arquivo-pt-mcp" style="color:#ffcd00">GitHub</a></p>
+</body>
+</html>"""
 
 if TYPE_CHECKING:
     from starlette.applications import Starlette
@@ -35,7 +52,7 @@ def create_app(  # noqa: PLR0913
     from starlette.middleware import Middleware
     from starlette.middleware.cors import CORSMiddleware
     from starlette.requests import Request
-    from starlette.responses import JSONResponse
+    from starlette.responses import HTMLResponse, JSONResponse
     from starlette.routing import Mount, Route
 
     security_settings = TransportSecuritySettings(
@@ -59,6 +76,12 @@ def create_app(  # noqa: PLR0913
                 "transport": "streamable-http",
             }
         )
+
+    async def index(request: Request) -> HTMLResponse:  # noqa: ARG001
+        """Landing page explaining MCP server usage."""
+        if _INDEX_PATH.exists():
+            return HTMLResponse(_INDEX_PATH.read_text())
+        return HTMLResponse(_FALLBACK_HTML)
 
     @asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:  # noqa: ARG001
@@ -97,6 +120,7 @@ def create_app(  # noqa: PLR0913
     app = Starlette(
         lifespan=lifespan,
         routes=[
+            Route("/", index),
             Mount(path, app=session_manager.handle_request),
             Route(HEALTH_PATH, health),
         ],
