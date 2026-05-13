@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING
 from arquivo_pt_mcp import server
 
 # HF-only static landing page (not shipped in pip wheel)
-_INDEX_PATH = Path(__file__).parent.parent.parent / "hf_static" / "index.html"
+# Check cwd first (Docker: WORKDIR /app), then relative to module (local dev with uv run)
+_INDEX_PATHS = [
+    Path.cwd() / "hf_static" / "index.html",
+    Path(__file__).parent.parent.parent / "hf_static" / "index.html",
+]
 
 # Minimal fallback HTML for pip-installed package (no hf_static)
 _FALLBACK_HTML = """<!DOCTYPE html>
@@ -79,8 +83,9 @@ def create_app(  # noqa: PLR0913
 
     async def index(request: Request) -> HTMLResponse:  # noqa: ARG001
         """Landing page explaining MCP server usage."""
-        if _INDEX_PATH.exists():
-            return HTMLResponse(_INDEX_PATH.read_text())
+        for path in _INDEX_PATHS:
+            if path.exists():
+                return HTMLResponse(path.read_text())
         return HTMLResponse(_FALLBACK_HTML)
 
     @asynccontextmanager
