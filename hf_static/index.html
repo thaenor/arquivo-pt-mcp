@@ -27,23 +27,23 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.7;
             min-height: 100vh;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
-            padding: 3rem 1.5rem;
+            padding: 2.5rem 1.5rem;
         }
         
         header {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 2.5rem;
         }
         
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             margin-bottom: 0.5rem;
             background: linear-gradient(135deg, var(--accent), #ff9500);
             -webkit-background-clip: text;
@@ -54,26 +54,6 @@
         .subtitle {
             color: var(--text-secondary);
             font-size: 1.1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .badge {
-            display: inline-block;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            padding: 0.25rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        
-        .badge a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-        
-        .badge a:hover {
-            text-decoration: underline;
         }
         
         section {
@@ -81,11 +61,11 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
         
         h2 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             margin-bottom: 1rem;
             color: var(--text-primary);
             display: flex;
@@ -112,11 +92,11 @@
         
         ul {
             list-style: none;
-            margin-bottom: 1rem;
+            margin: 1rem 0;
         }
         
         li {
-            padding: 0.5rem 0;
+            padding: 0.4rem 0;
             padding-left: 1.5rem;
             position: relative;
             color: var(--text-secondary);
@@ -129,108 +109,143 @@
             color: var(--accent);
         }
         
-        code {
-            background: var(--code-bg);
-            padding: 0.15rem 0.4rem;
-            border-radius: 4px;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.9em;
-            color: var(--accent);
-        }
-        
-        pre {
-            background: var(--code-bg);
-            padding: 1rem;
+        .url-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            overflow-x: auto;
-            margin-bottom: 1rem;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--accent);
+            word-break: break-all;
+            text-align: center;
         }
         
-        pre code {
-            background: none;
-            padding: 0;
-            color: var(--text-primary);
+        .copy-btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+            transition: background 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: var(--accent-hover);
+        }
+        
+        .copy-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .copy-hint {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            margin: 1rem 0;
+        }
+        
+        .steps li {
+            padding-left: 2.5rem;
+            position: relative;
+        }
+        
+        .steps li::before {
+            content: counter(step);
+            counter-increment: step;
+            position: absolute;
+            left: 0;
+            width: 1.8rem;
+            height: 1.8rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            top: 50%;
+            transform: translateY(-50%);
         }
         
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.6rem;
+            margin-top: 1rem;
         }
         
         .tool-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
         }
         
         .tool-name {
             color: var(--accent);
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.95rem;
-            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
         }
         
         .tool-desc {
             color: var(--text-secondary);
             font-size: 0.85rem;
+            margin-top: 0.15rem;
         }
         
-        .links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        
-        .links a {
-            background: var(--accent);
-            color: var(--bg-primary);
-            text-decoration: none;
-            padding: 0.6rem 1.2rem;
-            border-radius: 6px;
-            font-weight: 500;
-            transition: background 0.2s;
-        }
-        
-        .links a:hover {
-            background: var(--accent-hover);
-        }
-        
-        .highlight {
-            background: var(--bg-card);
-            border-left: 3px solid var(--accent);
-            padding: 1rem 1.25rem;
-            margin: 1rem 0;
-        }
-        
-        .highlight p {
-            margin-bottom: 0;
-        }
-        
-        .clients-list {
+        .clients {
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin: 1rem 0;
+            margin: 0.75rem 0;
         }
         
-        .client-badge {
+        .client {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            padding: 0.4rem 0.8rem;
+            padding: 0.35rem 0.75rem;
             border-radius: 6px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-primary);
+        }
+        
+        .callout {
+            background: linear-gradient(135deg, rgba(255, 205, 0, 0.1), rgba(255, 150, 0, 0.05));
+            border-left: 3px solid var(--accent);
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .callout p {
+            margin-bottom: 0;
+        }
+        
+        .callout-title {
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
         }
         
         footer {
             text-align: center;
             color: var(--text-secondary);
             font-size: 0.85rem;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
             border-top: 1px solid var(--border);
         }
         
@@ -242,142 +257,151 @@
         footer a:hover {
             text-decoration: underline;
         }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .container { padding: 2rem 1rem; }
+            .url-box { font-size: 0.8rem; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>📚 Arauto</h1>
-            <p class="subtitle">Um MCP para o Arquivo.pt</p>
-            <p>
-                <span class="badge">
-                    <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">GitHub</a>
-                </span>
-                &nbsp;
-                <span class="badge">
-                    <a href="/healthz">Estado: OK</a>
-                </span>
-                &nbsp;
-                <span class="badge">
-                    <a href="https://arquivo.pt" target="_blank">Arquivo.pt</a>
-                </span>
-            </p>
+            <p class="subtitle">Pesquiste o arquivo web português com inteligência artificial</p>
         </header>
 
         <section>
-            <h2>O que é isto?</h2>
+            <h2>O que é?</h2>
             <p>
-                O <strong>Arauto</strong> é uma ponte entre assistentes de IA e o 
-                <a href="https://arquivo.pt" target="_blank" style="color: var(--accent);">Arquivo.pt</a> — 
-                o arquivo web português que preserva páginas da internet desde 1996.
+                O <strong>Arauto</strong> permite que assistentes de IA como o Claude, ChatGPT ou Gemini 
+                pesquisem no <a href="https://arquivo.pt" target="_blank" style="color: var(--accent);">Arquivo.pt</a> — 
+                o arquivo histórico da web portuguesa, com páginas desde 1996.
             </p>
             <p>
-                Com o Arauto, pode pedir ao seu assistente de IA para pesquisar notícias antigas, 
-                encontrar versões arquivadas de websites que já não existem, ou extrair texto de 
-                páginas históricas portuguesas.
-            </p>
-        </section>
-
-        <section>
-            <h2>Do que preciso?</h2>
-            <p>
-                Para usar este serviço, precisa de uma ferramenta de IA que suporte o protocolo MCP 
-                (Model Context Protocol). Eis algumas opções populares:
-            </p>
-            <div class="clients-list">
-                <span class="client-badge">Claude (Anthropic)</span>
-                <span class="client-badge">ChatGPT (OpenAI)</span>
-                <span class="client-badge">Gemini (Google)</span>
-                <span class="client-badge">Cursor</span>
-                <span class="client-badge">Windsurf</span>
-            </div>
-            <p>
-                Se já utiliza alguma destas ferramentas, pode configurar o Arauto para dar ao 
-                seu assistente acesso ao arquivo histórico português.
+                Pode pedir para encontrar notícias antigas, ver como era um site há 10 anos, 
+                ou extrair texto de páginas que já não existem.
             </p>
         </section>
 
         <section>
-            <h2>O que posso fazer?</h2>
+            <h2>Ferramentas disponíveis</h2>
             <div class="tools-grid">
                 <div class="tool-card">
-                    <div class="tool-name">Pesquisar</div>
-                    <div class="tool-desc">Pesquisa textual em páginas arquivadas</div>
+                    <div class="tool-name">Pesquisa</div>
+                    <div class="tool-desc">Pesquisa textual no arquivo</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">Pesquisar Imagens</div>
-                    <div class="tool-desc">Procura imagens no arquivo (1,8 mil milhões)</div>
+                    <div class="tool-name">Pesquisa de Imagens</div>
+                    <div class="tool-desc">1,8 mil milhões de imagens</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">Listar Versões</div>
-                    <div class="tool-desc">Todas as capturas de um URL específico</div>
+                    <div class="tool-name">Versões de Site</div>
+                    <div class="tool-desc">Todas as capturas de um URL</div>
                 </div>
                 <div class="tool-card">
                     <div class="tool-name">Obter Página</div>
-                    <div class="tool-desc">Recupera uma página arquivada específica</div>
+                    <div class="tool-desc">Página arquivada específica</div>
                 </div>
                 <div class="tool-card">
                     <div class="tool-name">Extrair Texto</div>
-                    <div class="tool-desc">Obtém o texto legível de uma página</div>
+                    <div class="tool-desc">Texto legível de uma página</div>
                 </div>
                 <div class="tool-card">
                     <div class="tool-name">Captura de Ecrã</div>
-                    <div class="tool-desc">Imagem PNG de como a página era</div>
+                    <div class="tool-desc">Imagem PNG dessa época</div>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2>Como ligar</h2>
-            <p>
-                Adicione este servidor às configurações do seu cliente MCP. A configuração 
-                depende da ferramenta que utiliza:
-            </p>
+            <h2>Como usar</h2>
             
-            <p><strong>Claude Desktop</strong> — edite o ficheiro de configuração:</p>
-            <pre><code>{
-  "mcpServers": {
-    "arquivo-pt": {
-      "url": "https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp"
-    }
-  }
-}</code></pre>
-
-            <p><strong>Cursor / Windsurf</strong> — adicione às definições MCP:</p>
-            <pre><code>{
-  "mcpServers": {
-    "arquivo-pt": {
-      "url": "https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp"
-    }
-  }
-}</code></pre>
-
-            <div class="highlight">
-                <p>
-                    <strong>Endereço do servidor:</strong><br>
-                    <code>https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp</code>
-                </p>
+            <div class="callout">
+                <div class="callout-title">Não precisa de instalar nada!</div>
+                <p>Basta adicionar este endereço ao seu assistente de IA preferido.</p>
+            </div>
+            
+            <div class="url-box">
+                https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp
+            </div>
+            <div style="text-align: center;">
+                <button class="copy-btn" onclick="copyUrl()">📋 Copiar endereço</button>
+                <p class="copy-hint" id="copy-hint"></p>
+            </div>
+            
+            <h3 style="margin-top: 1.5rem; margin-bottom: 0.75rem; color: var(--text-primary);">Assistentes compatíveis</h3>
+            <div class="clients">
+                <span class="client">Claude (Anthropic)</span>
+                <span class="client">ChatGPT (OpenAI)</span>
+                <span class="client">Gemini (Google)</span>
+                <span class="client">Cursor</span>
+                <span class="client">Windsurf</span>
+                <span class="client">Cline</span>
             </div>
         </section>
 
         <section>
-            <h2>Exemplos de uso</h2>
+            <h2>Configurar no Claude (versão web)</h2>
+            <ol class="steps">
+                <li>Abra as <strong>Definições</strong> (canto superior direito)</li>
+                <li>Vá a <strong>Connectors</strong> → <strong>Add custom connector</strong></li>
+                <li>Em <strong>Name</strong> escreva: <code style="background: var(--code-bg); padding: 0.15rem 0.4rem; border-radius: 4px; color: var(--accent);">arquivo-pt</code></li>
+                <li>Em <strong>URL</strong> cole o endereço acima</li>
+                <li>Guarde. Pronto! 🎉</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Configurar no ChatGPT</h2>
+            <ol class="steps">
+                <li>Abra as <strong>Settings</strong> (canto inferior esquerdo)</li>
+                <li>Procure <strong>Connectors</strong> na secção de features</li>
+                <li>Clique em <strong>Add connector</strong></li>
+                <li>Cole o endereço acima no campo <strong>MCP server URL</strong></li>
+                <li>Guarde. Pronto! 🎉</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Experimente</h2>
+            <p>Depois de configurado, pode pedir coisas como:</p>
             <ul>
                 <li>"Pesquisa notícias sobre o Euro 2004 em jornais portugueses"</li>
-                <li>"Mostra como era o website da Universidade do Porto em 2010"</li>
+                <li>"Mostra como era o site do Público em 2010"</li>
                 <li>"Encontra imagens antigas do Rossio em Lisboa"</li>
-                <li>"Recupera o texto de um artigo do Público de 2008"</li>
                 <li>"Quais as versões arquivadas do site do Banco de Portugal?"</li>
             </ul>
         </section>
 
+        <section>
+            <h2>Executar localmente</h2>
+            <p>
+                Se preferir privacidade total ou controlo sobre os dados, pode correr o Arauto 
+                no seu próprio computador. Consulte as 
+                <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank" style="color: var(--accent);">instruções completas no GitHub</a>.
+            </p>
+        </section>
+
         <footer>
             <p>
-                Construído com ❤️ por <a href="https://github.com/thaenor" target="_blank">@thaenor</a> 
-                &nbsp;|&nbsp; 
-                <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">Código Fonte</a>
+                Criado por <a href="https://github.com/thaenor" target="_blank">@thaenor</a> 
+                para o <a href="https://sobre.arquivo.pt/pt/areas-de-intervencao/premio-arquivo-pt/" target="_blank">Prémio Arquivo.pt</a>
+                &nbsp;·&nbsp; 
+                <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">Código fonte</a>
             </p>
         </footer>
     </div>
+
+    <script>
+        function copyUrl() {
+            navigator.clipboard.writeText('https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp').then(() => {
+                const hint = document.getElementById('copy-hint');
+                hint.textContent = '✓ Copiado!';
+                setTimeout(() => { hint.textContent = ''; }, 2000);
+            });
+        }
+    </script>
 </body>
 </html>

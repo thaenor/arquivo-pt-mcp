@@ -24,11 +24,13 @@ _FALLBACK_HTML = """<!DOCTYPE html>
 <body style="font-family:system-ui;background:#0b0f19;color:#f0f4f8;padding:2rem">
 <h1>📚 Arauto</h1>
 <p>Um MCP para o <a href="https://arquivo.pt" style="color:#ffcd00">Arquivo.pt</a></p>
-<p><code style="background:#1a2332;padding:.25rem .5rem">/mcp</code> — Servidor MCP</p>
-<p><code style="background:#1a2332;padding:.25rem .5rem">/healthz</code> — Estado do serviço</p>
-<p><a href="https://github.com/thaenor/arquivo-pt-mcp" style="color:#ffcd00">GitHub</a></p>
-</body>
-</html>"""
+<p style="margin-top:1.5rem">Adicione ao seu assistente de IA:</p>
+<p style="background:#1a2332;padding:1rem;border-radius:8px;font-family:monospace;color:#ffcd00">
+https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp</p>
+<p style="margin-top:1rem;color:#9ba8b9">Compatível: Claude, ChatGPT, Gemini</p>
+<p style="margin-top:1.5rem"><a href="https://github.com/thaenor/arquivo-pt-mcp"
+style="color:#ffcd00">GitHub</a></p>
+</body></html>"""
 
 if TYPE_CHECKING:
     from starlette.applications import Starlette
