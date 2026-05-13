@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arquivo.pt MCP Server</title>
+    <title>Arauto — MCP para o Arquivo.pt</title>
     <style>
         :root {
             --bg-primary: #0b0f19;
@@ -198,17 +198,31 @@
             background: var(--accent-hover);
         }
         
-        .endpoint-box {
+        .highlight {
             background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
+            border-left: 3px solid var(--accent);
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
         }
         
-        .endpoint-box code {
-            display: block;
-            word-break: break-all;
+        .highlight p {
+            margin-bottom: 0;
+        }
+        
+        .clients-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .client-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
         }
         
         footer {
@@ -233,15 +247,15 @@
 <body>
     <div class="container">
         <header>
-            <h1>📚 Arquivo.pt MCP Server</h1>
-            <p class="subtitle">Model Context Protocol server for the Portuguese Web Archive</p>
+            <h1>📚 Arauto</h1>
+            <p class="subtitle">Um MCP para o Arquivo.pt</p>
             <p>
                 <span class="badge">
                     <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">GitHub</a>
                 </span>
                 &nbsp;
                 <span class="badge">
-                    <a href="/healthz">Health: OK</a>
+                    <a href="/healthz">Estado: OK</a>
                 </span>
                 &nbsp;
                 <span class="badge">
@@ -251,57 +265,76 @@
         </header>
 
         <section>
-            <h2>What is MCP?</h2>
+            <h2>O que é isto?</h2>
             <p>
-                <strong>Model Context Protocol (MCP)</strong> is an open standard that lets AI assistants like 
-                Claude, Cursor, and others connect to external data sources and tools. Think of it as a 
-                standardized plugin system for AI applications.
+                O <strong>Arauto</strong> é uma ponte entre assistentes de IA e o 
+                <a href="https://arquivo.pt" target="_blank" style="color: var(--accent);">Arquivo.pt</a> — 
+                o arquivo web português que preserva páginas da internet desde 1996.
             </p>
             <p>
-                This server exposes the <a href="https://arquivo.pt" target="_blank" style="color: var(--accent);">Arquivo.pt</a> 
-                Portuguese Web Archive as a set of tools that AI assistants can use to search historical 
-                web content, retrieve archived pages, and extract information from the past.
+                Com o Arauto, pode pedir ao seu assistente de IA para pesquisar notícias antigas, 
+                encontrar versões arquivadas de websites que já não existem, ou extrair texto de 
+                páginas históricas portuguesas.
             </p>
         </section>
 
         <section>
-            <h2>Available Tools</h2>
+            <h2>Do que preciso?</h2>
+            <p>
+                Para usar este serviço, precisa de uma ferramenta de IA que suporte o protocolo MCP 
+                (Model Context Protocol). Eis algumas opções populares:
+            </p>
+            <div class="clients-list">
+                <span class="client-badge">Claude (Anthropic)</span>
+                <span class="client-badge">ChatGPT (OpenAI)</span>
+                <span class="client-badge">Gemini (Google)</span>
+                <span class="client-badge">Cursor</span>
+                <span class="client-badge">Windsurf</span>
+            </div>
+            <p>
+                Se já utiliza alguma destas ferramentas, pode configurar o Arauto para dar ao 
+                seu assistente acesso ao arquivo histórico português.
+            </p>
+        </section>
+
+        <section>
+            <h2>O que posso fazer?</h2>
             <div class="tools-grid">
                 <div class="tool-card">
-                    <div class="tool-name">search</div>
-                    <div class="tool-desc">Full-text search across the archive</div>
+                    <div class="tool-name">Pesquisar</div>
+                    <div class="tool-desc">Pesquisa textual em páginas arquivadas</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">image_search</div>
-                    <div class="tool-desc">Search 1.8B+ archived images</div>
+                    <div class="tool-name">Pesquisar Imagens</div>
+                    <div class="tool-desc">Procura imagens no arquivo (1,8 mil milhões)</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">list_versions</div>
-                    <div class="tool-desc">Find all captures of a URL</div>
+                    <div class="tool-name">Listar Versões</div>
+                    <div class="tool-desc">Todas as capturas de um URL específico</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">get_snapshot</div>
-                    <div class="tool-desc">Fetch a specific archived page</div>
+                    <div class="tool-name">Obter Página</div>
+                    <div class="tool-desc">Recupera uma página arquivada específica</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">extract_text</div>
-                    <div class="tool-desc">Get readable text from a page</div>
+                    <div class="tool-name">Extrair Texto</div>
+                    <div class="tool-desc">Obtém o texto legível de uma página</div>
                 </div>
                 <div class="tool-card">
-                    <div class="tool-name">get_screenshot</div>
-                    <div class="tool-desc">PNG render of archived page</div>
+                    <div class="tool-name">Captura de Ecrã</div>
+                    <div class="tool-desc">Imagem PNG de como a página era</div>
                 </div>
-            </div>
-            <div class="links">
-                <a href="https://github.com/thaenor/arquivo-pt-mcp/blob/main/docs/api-reference.md" target="_blank">API Reference</a>
             </div>
         </section>
 
         <section>
-            <h2>How to Connect</h2>
-            <p>Add this server to your MCP client configuration:</p>
+            <h2>Como ligar</h2>
+            <p>
+                Adicione este servidor às configurações do seu cliente MCP. A configuração 
+                depende da ferramenta que utiliza:
+            </p>
             
-            <p><strong>Claude Desktop</strong> — edit <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+            <p><strong>Claude Desktop</strong> — edite o ficheiro de configuração:</p>
             <pre><code>{
   "mcpServers": {
     "arquivo-pt": {
@@ -310,7 +343,7 @@
   }
 }</code></pre>
 
-            <p><strong>Cursor / Windsurf</strong> — add to your MCP settings:</p>
+            <p><strong>Cursor / Windsurf</strong> — adicione às definições MCP:</p>
             <pre><code>{
   "mcpServers": {
     "arquivo-pt": {
@@ -319,28 +352,30 @@
   }
 }</code></pre>
 
-            <div class="endpoint-box">
-                <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">MCP Endpoint:</p>
-                <code>https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp</code>
+            <div class="highlight">
+                <p>
+                    <strong>Endereço do servidor:</strong><br>
+                    <code>https://decaf-squirrel-arquivo-pt-mcp.hf.space/mcp</code>
+                </p>
             </div>
         </section>
 
         <section>
-            <h2>What Can You Do?</h2>
+            <h2>Exemplos de uso</h2>
             <ul>
-                <li>Search historical Portuguese web content dating back to 1996</li>
-                <li>Find archived versions of websites that no longer exist</li>
-                <li>Extract text from old news articles, blogs, and documents</li>
-                <li>Search for historical images across Portuguese websites</li>
-                <li>Get screenshots of websites as they appeared in the past</li>
+                <li>"Pesquisa notícias sobre o Euro 2004 em jornais portugueses"</li>
+                <li>"Mostra como era o website da Universidade do Porto em 2010"</li>
+                <li>"Encontra imagens antigas do Rossio em Lisboa"</li>
+                <li>"Recupera o texto de um artigo do Público de 2008"</li>
+                <li>"Quais as versões arquivadas do site do Banco de Portugal?"</li>
             </ul>
         </section>
 
         <footer>
             <p>
-                Built with ❤️ by <a href="https://github.com/thaenor" target="_blank">@thaenor</a> 
+                Construído com ❤️ por <a href="https://github.com/thaenor" target="_blank">@thaenor</a> 
                 &nbsp;|&nbsp; 
-                <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">Source Code</a>
+                <a href="https://github.com/thaenor/arquivo-pt-mcp" target="_blank">Código Fonte</a>
             </p>
         </footer>
     </div>

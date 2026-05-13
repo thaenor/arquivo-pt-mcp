@@ -20,12 +20,12 @@ _INDEX_PATHS = [
 # Minimal fallback HTML for pip-installed package (no hf_static)
 _FALLBACK_HTML = """<!DOCTYPE html>
 <html>
-<head><title>Arquivo.pt MCP Server</title></head>
+<head><title>Arauto — MCP para o Arquivo.pt</title></head>
 <body style="font-family:system-ui;background:#0b0f19;color:#f0f4f8;padding:2rem">
-<h1>📚 Arquivo.pt MCP Server</h1>
-<p>Arquivo.pt MCP server — <a href="https://arquivo.pt" style="color:#ffcd00">Arquivo.pt</a></p>
-<p><code style="background:#1a2332;padding:.25rem .5rem">/mcp</code> — MCP endpoint</p>
-<p><code style="background:#1a2332;padding:.25rem .5rem">/healthz</code> — Health check</p>
+<h1>📚 Arauto</h1>
+<p>Um MCP para o <a href="https://arquivo.pt" style="color:#ffcd00">Arquivo.pt</a></p>
+<p><code style="background:#1a2332;padding:.25rem .5rem">/mcp</code> — Servidor MCP</p>
+<p><code style="background:#1a2332;padding:.25rem .5rem">/healthz</code> — Estado do serviço</p>
 <p><a href="https://github.com/thaenor/arquivo-pt-mcp" style="color:#ffcd00">GitHub</a></p>
 </body>
 </html>"""
