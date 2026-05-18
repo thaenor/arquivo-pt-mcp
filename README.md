@@ -208,18 +208,16 @@ RUN_INTEGRATION=1 pytest -m integration -v
 
 Estes testes estão marcados com `@pytest.mark.integration` e são ignorados por
 padrão. Apenas executam quando a variável de ambiente `RUN_INTEGRATION=1` está
-definida. No GitHub Actions correm automaticamente uma vez por dia (agendamento
-noturno) e também podem ser disparados manualmente via `workflow_dispatch` — não
-bloqueiam PRs.
+definida. No GitHub Actions podem ser disparados manualmente via `workflow_dispatch`.
 
 **Nota sobre o GitHub Actions:** Os runners padrão do GitHub estão alojados nos
 EUA. A conectividade TCP transatlântica para `arquivo.pt` (alojado em Portugal)
 é por vezes pouco fiável — os testes podem falhar com `httpx.ConnectError` ou
-`httpx.ConnectTimeout` independentemente da qualidade do código. O projeto usa
-`MAX_RETRIES=5` com backoff exponencial para mitigar este problema, mas uma
-falha ocasional no CI noturno é esperada e não indica uma regressão. Para
-execuções locais (a partir de qualquer localização na Europa) os testes passam
-de forma consistente.
+`httpx.ConnectTimeout` independentemente da qualidade do código. Por isso, os
+testes de integração foram removidos do agendamento noturno no CI. Podem ser
+disparados manualmente via `workflow_dispatch` quando necessário. Para execuções
+locais (a partir de qualquer localização na Europa) os testes passam de forma
+consistente.
 
 ### Prémio Arquivo.pt
 
@@ -429,16 +427,15 @@ RUN_INTEGRATION=1 pytest -m integration -v
 
 These tests are marked with `@pytest.mark.integration` and skipped by default.
 They only run when the `RUN_INTEGRATION=1` environment variable is set. On
-GitHub Actions they run automatically once per day (nightly schedule) and can
-also be triggered manually via `workflow_dispatch` — they never block PRs.
+GitHub Actions they can be triggered manually via `workflow_dispatch`.
 
 **GitHub Actions note:** Standard GitHub-hosted runners are US-based.
 Transatlantic TCP connectivity to `arquivo.pt` (hosted in Portugal) is
 sometimes unreliable — tests may fail with `httpx.ConnectError` or
-`httpx.ConnectTimeout` regardless of code quality. The project uses
-`MAX_RETRIES=5` with exponential backoff to mitigate this, but an occasional
-failure in the nightly CI run is expected and does not indicate a regression.
-When run locally from a European location the tests pass consistently.
+`httpx.ConnectTimeout` regardless of code quality. For this reason, the
+integration tests have been removed from the nightly CI schedule. They can still
+be triggered manually via `workflow_dispatch` when needed. When run locally
+from a European location the tests pass consistently.
 
 ### Prémio Arquivo.pt
 

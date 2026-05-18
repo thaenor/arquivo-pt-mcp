@@ -83,7 +83,7 @@ Mocks in `tests/conftest.py` are shaped to match real Arquivo.pt responses (veri
 
 ## CI / release
 
-- `.github/workflows/ci.yml` — lint + test matrix (3.11/3.12/3.13) + import-validation on every push/PR. Integration job runs only on schedule (06:37 UTC daily) or `workflow_dispatch`; never blocks PRs.
+- `.github/workflows/ci.yml` — lint + test matrix (3.11/3.12/3.13) + import-validation on every push/PR. Integration job runs only on `workflow_dispatch`; it was previously scheduled nightly but disabled due to unreliable transatlantic connectivity from US-based GitHub runners to `arquivo.pt` (Portugal). It never blocks PRs.
 - `.github/workflows/publish.yml` — tag `v*.*.*` triggers PyPI publish (trusted publisher, no token) and a GitHub Release.
 - `.github/workflows/huggingface.yml` — same tag triggers HF Spaces deploy (Dockerfile-based, port 7860). The Dockerfile pins `ARQUIVO_PT_MCP_ALLOWED_HOSTS` to the HF Space hostname — update it if the Space is renamed.
 
